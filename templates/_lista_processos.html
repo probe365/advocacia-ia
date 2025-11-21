@@ -1,0 +1,119 @@
+<div class="d-flex justify-content-between align-items-center mb-2 mt-2">
+  <div>
+    <span class="badge bg-secondary" style="font-size: 0.75rem;">
+      ID: <code class="text-white" style="cursor: pointer;" 
+                onclick="navigator.clipboard.writeText('{{ id_cliente }}'); this.innerHTML='✓ Copiado!'; setTimeout(()=>this.innerHTML='{{ id_cliente }}', 1500);"
+                title="Clique para copiar">{{ id_cliente }}</code>
+    </span>
+  </div>
+  <div class="btn-group btn-group-sm">
+    <a href="/processos/{{ id_cliente }}/bulk-upload" class="btn btn-outline-primary">
+      <i class="bi bi-upload"></i> CSV Import
+    </a>
+    <a href="/processos/{{ id_cliente }}/novo" class="btn btn-success">+ Adicionar Processo</a>
+  </div>
+</div>
+
+<input type="text" class="form-control form-control-sm mb-2" placeholder="Filtrar por nome, código, ou papel (ex: autor, reu)" oninput="filtrarProcessos(this.value)">
+<div class="btn-group mb-2 ms-2" role="group">
+  <input type="radio" class="btn-check" name="filter-tipo-parte" id="filter-all" value="" checked onchange="filtrarProcessos(document.querySelector('input[name=\'filter-tipo-parte\']:checked').value)">
+  <label class="btn btn-outline-secondary btn-sm" for="filter-all">Todos</label>
+  
+  <input type="radio" class="btn-check" name="filter-tipo-parte" id="filter-autor" value="autor" onchange="filtrarProcessos(document.querySelector('input[name=\'filter-tipo-parte\']:checked').value)">
+  <label class="btn btn-outline-secondary btn-sm" for="filter-autor">👤 Autor</label>
+  
+  <input type="radio" class="btn-check" name="filter-tipo-parte" id="filter-reu" value="reu" onchange="filtrarProcessos(document.querySelector('input[name=\'filter-tipo-parte\']:checked').value)">
+  <label class="btn btn-outline-secondary btn-sm" for="filter-reu">🛡️ Réu</label>
+  
+  <input type="radio" class="btn-check" name="filter-tipo-parte" id="filter-terceiro" value="terceiro" onchange="filtrarProcessos(document.querySelector('input[name=\'filter-tipo-parte\']:checked').value)">
+  <label class="btn btn-outline-secondary btn-sm" for="filter-terceiro">👥 Terceiro</label>
+  
+  <input type="radio" class="btn-check" name="filter-tipo-parte" id="filter-labor" value="labor" onchange="filtrarProcessos(document.querySelector('input[name=\'filter-tipo-parte\']:checked').value)">
+  <label class="btn btn-outline-secondary btn-sm" for="filter-labor">💼 Trabalhista</label>
+</div>
+
+<div class="list-group" id="lista-processos-grupo">
+  
+  {% for processo in processos %}
+  <div class="list-group-item" data-tipo-parte="{{ processo.tipo_parte or '' }}" data-search-text="{{ processo.nome_caso }} {{ processo.case_code }} {{ processo.tipo_parte or '' }}">
+    <div class="d-flex w-100 justify-content-between align-items-start">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="flex-grow-1 text-decoration-none text-dark">
+        <div>
+          <h6 class="mb-1">
+            {{ processo.nome_caso }} 
+            <small class="text-muted">({{ processo.case_code or '...' }})</small>
+            {% if processo.tipo_parte %}
+              <span class="badge bg-info text-dark ms-2">{{ processo.tipo_parte }}</span>
+            {% else %}
+              <span class="badge bg-secondary text-white ms-2">sem papel</span>
+            {% endif %}
+          </h6>
+          <p class="mb-1 small">
+            <small>Nº: {{ processo.numero_cnj or 'Não informado' }}</small>
+          </p>
+        </div>
+        <small class="text-muted">Status: {{ processo.status }}</small>
+      </a>
+      <button class="btn btn-sm btn-outline-danger ms-2" 
+              onclick="deleteProcesso('{{ processo.id_processo }}', '{{ processo.nome_caso }}')"
+              title="Deletar processo">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+  </div>
+  {% else %}
+    <div class="list-group-item">
+      <p class="mb-1 text-muted">Nenhum processo cadastrado para este cliente.</p>
+    </div>
+  {% endfor %}
+
+</div>
+<script>
+function filtrarProcessos(q){
+  const filterType = q.toLowerCase().trim();
+  const items = document.querySelectorAll('#lista-processos-grupo .list-group-item:not(:last-child)');
+  
+  items.forEach(it=>{
+    let show = true;
+    
+    if(filterType === 'labor') {
+      // Filter for labor cases (reclamante or reclamada)
+      const tipoParte = it.getAttribute('data-tipo-parte') || '';
+      show = tipoParte === 'reclamante' || tipoParte === 'reclamada';
+    } else if(filterType) {
+      // Filter by tipo_parte value or search text
+      const tipoParte = it.getAttribute('data-tipo-parte') || '';
+      const searchText = it.getAttribute('data-search-text') || '';
+      show = tipoParte === filterType || searchText.toLowerCase().indexOf(filterType) !== -1;
+    }
+    
+    it.style.display = show ? '' : 'none';
+  });
+}
+
+function deleteProcesso(idProcesso, nomeProcesso) {
+  if (!confirm(`⚠️ Tem certeza que deseja DELETAR o processo:\n\n"${nomeProcesso}"\n\nEsta ação NÃO pode ser desfeita!`)) {
+    return;
+  }
+  
+  fetch(`/processos/api/delete/${idProcesso}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'sucesso') {
+      alert('✓ Processo deletado com sucesso!');
+      // Recarregar a lista de processos
+      window.location.reload();
+    } else {
+      alert('✗ Erro ao deletar processo: ' + data.mensagem);
+    }
+  })
+  .catch(error => {
+    alert('✗ Erro na comunicação: ' + error.message);
+  });
+}
+</script>

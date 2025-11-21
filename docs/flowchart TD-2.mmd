@@ -1,0 +1,90 @@
+flowchart TD
+  %% Beta architecture diagram with extended components & refined shapes
+  %% Shapes legend (see bottom legend subgraph)
+
+  %% Client Tier
+  subgraph Client
+    U(("User\nBrowser / HTMX"))
+  end
+
+  %% Edge / Web Tier
+  subgraph WebTier
+    GW{{"Reverse Proxy /\nLoad Balancer"}}
+    APP(["Flask App\nwsgi:app"])
+  end
+
+  %% Core Application Layer
+  subgraph AppLayer[Application Layer]
+    BP[["Blueprints\nclientes / processos / documentos / chat / auth / metrics"]]
+    SRV["Service Layer\nCadastroService"]
+    AUTH(("Auth / Session"))
+    MT{{"Multi-Tenant\nMiddleware"}}
+    VAL>"Input Validation"]
+    LOG["Structured Logging"]
+    METR(["Metrics Exporter"])
+  end
+
+  %% AI & RAG Pipeline
+  subgraph AIPipeline[AI & RAG Pipeline]
+    LC[["LangChain\nOrchestrator"]]
+    EMB(["Embedding Model"])
+    VDB[("Chroma Vector Store")]
+    RETR{"Retriever"}
+    LLM(("OpenAI API"))
+  end
+
+  %% Persistence & Data
+  subgraph Data
+    PG[("PostgreSQL")]
+    TBL[("chat_turns &\nDomain Tables")]
+    MIG[["alembic/versions"]]
+    FS[("Embeddings Disk Volume")]
+  end
+
+  %% Operations / Tooling
+  subgraph Ops[Operations]
+    CFG>".env / Feature Flags"]
+    CTNR(["Docker / Compose"])
+    MIGT(("Alembic CLI"))
+  end
+
+  %% Flows
+  U --> GW --> APP
+  APP --> BP --> SRV --> PG
+  SRV --> TBL
+  MIG -. schema .-> PG
+  MIG -. versioned .-> TBL
+  APP --> AUTH
+  APP --> MT
+  APP --> LOG
+  APP --> METR
+  BP --> LC
+  LC --> EMB --> VDB
+  VDB --> FS
+  LC --> RETR --> LLM
+  LLM --> LC
+  CFG --> APP
+  CTNR --> APP
+  MIGT --> MIG
+  LOG --> FS
+
+  %% Styling Classes
+  classDef data fill:#eef,stroke:#336;
+  classDef ai fill:#efe,stroke:#363;
+  classDef ops fill:#fee,stroke:#633;
+  classDef app fill:#f5f9ff,stroke:#357;
+  class PG,TBL,MIG,FS data
+  class LC,EMB,VDB,RETR,LLM ai
+  class CFG,CTNR,MIGT ops
+  class APP,BP,SRV,AUTH,MT,VAL,LOG,METR app
+
+  %% Legend
+  subgraph Legend[Legend]
+    L1((Circle = Actor / External API))
+    L2{{Hex / Curly = Decision / Middleware}}
+    L3[[Double Border = Module Group / Orchestrator]]
+    L4([Stadium = Running Service])
+    L5[(Cylinder = Persistent Storage / DB / Volume)]
+    L6>Asymmetric = Boundary / Config]
+  end
+  Legend --- Client

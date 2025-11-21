@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Escritório & Advogados{% endblock %}
+{% block content %}
+<h2 class="mb-3">Dados do Escritório e Advogados</h2>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">Dados do Escritório</div>
+      <div class="card-body" id="dados-escritorio">
+        {% include '_escritorio_dados.html' %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">Cadastrar / Editar Advogado</div>
+      <div class="card-body" id="advogado-form-wrapper">
+        {% include '_advogado_form.html' with context %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Advogados</span>
+        <small class="text-muted">Associar aos Processos</small>
+      </div>
+      <div class="card-body" id="lista-advogados">
+        {% include '_lista_advogados.html' %}
+      </div>
+    </div>
+  </div>
+</div>
+<hr class="my-4">
+<a href="/clientes/" class="btn btn-outline-secondary btn-sm">Voltar</a>
+{% endblock %}

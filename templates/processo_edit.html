@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Processo - {{ processo.nome_caso or 'Novo Processo' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+      {% if processo.id_processo %}
+        Editar Processo: {{ processo.nome_caso }}
+      {% else %}
+        Novo Processo
+      {% endif %}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  {% if processo.numero_cnj %}
+  <!-- Alerta sobre imutabilidade do CNJ -->
+  <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-shield-lock-fill"></i> <strong>Atenção:</strong> 
+    O <strong>número CNJ</strong> não pode ser alterado após a criação do processo por questões de integridade e conformidade. 
+    Se houver erro no número, será necessário excluir e recriar o processo.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/processos/{{ processo.id_processo }}/salvar" class="needs-validation" novalidate>
+    
+    <!-- SEÇÃO 1: INFORMAÇÕES BÁSICAS -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Básicas</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          
+          <!-- Nome do Caso -->
+          <div class="col-md-6">
+            <label for="nome_caso" class="form-label">Nome do Caso <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="nome_caso" name="nome_caso" 
+                   value="{{ processo.nome_caso or '' }}" required>
+            <div class="invalid-feedback">Por favor, informe o nome do caso.</div>
+          </div>
+
+          <!-- Número CNJ -->
+          <div class="col-md-6">
+            <label for="numero_cnj" class="form-label">
+              Número CNJ 
+              <i class="bi bi-lock-fill text-warning" 
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="top" 
+                 title="Campo protegido - Não pode ser alterado após criação do processo"></i>
+            </label>
+            <input type="text" 
+                   class="form-control" 
+                   id="numero_cnj" 
+                   name="numero_cnj" 
+                   value="{{ processo.numero_cnj or '' }}"
+                   placeholder="0000000-00.0000.0.00.0000"
+                   pattern="\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}"
+                   readonly
+                   style="background-color: #2d2d2d; color: #888; cursor: not-allowed; border: 2px solid #555;"
+                   title="O número CNJ não pode ser alterado após a criação do processo">
+            <div class="form-text">
+              <i class="bi bi-info-circle"></i> Formato: 0000000-00.0000.0.00.0000 
+              <span class="text-warning">(campo imutável)</span>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="col-md-4">
+            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+            <select class="form-select" id="status" name="status" required>
+              <option value="">-- Selecione --</option>
+              <option value="ATIVO" {% if processo.status == 'ATIVO' %}selected{% endif %}>ATIVO</option>
+              <option value="PENDENTE" {% if processo.status == 'PENDENTE' %}selected{% endif %}>PENDENTE</option>
+              <option value="CONCLUIDO" {% if processo.status == 'CONCLUIDO' %}selected{% endif %}>CONCLUÍDO</option>
+              <option value="ARQUIVADO" {% if processo.status == 'ARQUIVADO' %}selected{% endif %}>ARQUIVADO</option>
+            </select>
+            <div class="invalid-feedback">Por favor, selecione um status.</div>
+          </div>
+
+          <!-- Advogado OAB -->
+          <div class="col-md-4">
+            <label for="advogado_oab" class="form-label">Advogado Responsável</label>
+            <select class="form-select" id="advogado_oab" name="advogado_oab">
+              <option value="">-- Sem advogado --</option>
+              {% for adv in advogados %}
+                <option value="{{ adv.oab }}" {% if processo.advogado_oab == adv.oab %}selected{% endif %}>
+                  {{ adv.nome }} (OAB {{ adv.oab }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Tipo de Parte -->
+          <div class="col-md-4">
+            <label for="tipo_parte" class="form-label">Papel do Cliente</label>
+            <select class="form-select" id="tipo_parte" name="tipo_parte">
+              <option value="">-- Sem papel definido --</option>
+              <option value="autor" {% if processo.tipo_parte == 'autor' %}selected{% endif %}>Autor</option>
+              <option value="reu" {% if processo.tipo_parte == 'reu' %}selected{% endif %}>Réu</option>
+              <option value="terceiro" {% if processo.tipo_parte == 'terceiro' %}selected{% endif %}>Terceiro</option>
+              <option value="reclamante" {% if processo.tipo_parte == 'reclamante' %}selected{% endif %}>Reclamante</option>
+              <option value="reclamada" {% if processo.tipo_parte == 'reclamada' %}selected{% endif %}>Reclamada</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 2: NOVOS CAMPOS (ITEM 1 - MIGRATION 0005) -->
+    <div class="card mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-folder-plus"></i> Dados Processuais Detalhados</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <!-- Local de Tramite -->
+          <div class="col-md-6">
+            <label for="local_tramite" class="form-label">Local de Trâmite</label>
+            <input type="text" class="form-control" id="local_tramite" name="local_tramite" 
+                   value="{{ processo.local_tramite or '' }}"
+                   placeholder="Ex: 1ª Vara Cível de São Paulo">
+            <div class="form-text">Vara/Juízo onde tramita o processo</div>
+          </div>
+
+          <!-- Comarca -->
+          <div class="col-md-6">
+            <label for="comarca" class="form-label">Comarca</label>
+            <input type="text" class="form-control" id="comarca" name="comarca" 
+                   value="{{ processo.comarca or '' }}"
+                   placeholder="Ex: São Paulo">
+          </div>
+
+          <!-- Área de Atuação -->
+          <div class="col-md-4">
+            <label for="area_atuacao" class="form-label">Área de Atuação</label>
+            <select class="form-select" id="area_atuacao" name="area_atuacao">
+              <option value="">-- Selecione --</option>
+              <option value="Civil" {% if processo.area_atuacao == 'Civil' %}selected{% endif %}>Civil</option>
+              <option value="Trabalhista" {% if processo.area_atuacao == 'Trabalhista' %}selected{% endif %}>Trabalhista</option>
+              <option value="Penal" {% if processo.area_atuacao == 'Penal' %}selected{% endif %}>Penal</option>
+              <option value="Tributario" {% if processo.area_atuacao == 'Tributario' %}selected{% endif %}>Tributário</option>
+              <option value="Familia" {% if processo.area_atuacao == 'Familia' %}selected{% endif %}>Família</option>
+            </select>
+          </div>
+
+          <!-- Instância -->
+          <div class="col-md-4">
+            <label for="instancia" class="form-label">Instância</label>
+            <select class="form-select" id="instancia" name="instancia">
+              <option value="">-- Selecione --</option>
+              <option value="1ª Instância" {% if processo.instancia == '1ª Instância' %}selected{% endif %}>1ª Instância</option>
+              <option value="2ª Instância" {% if processo.instancia == '2ª Instância' %}selected{% endif %}>2ª Instância</option>
+              <option value="Superior" {% if processo.instancia == 'Superior' %}selected{% endif %}>Superior (STJ/STF)</option>
+            </select>
+          </div>
+
+          <!-- Subfase -->
+          <div class="col-md-4">
+            <label for="subfase" class="form-label">Subfase Processual</label>
+            <select class="form-select" id="subfase" name="subfase">
+              <option value="">-- Selecione --</option>
+              <option value="Inicial" {% if processo.subfase == 'Inicial' %}selected{% endif %}>Inicial</option>
+              <option value="Instrução" {% if processo.subfase == 'Instrução' %}selected{% endif %}>Instrução</option>
+              <option value="Sentenciado" {% if processo.subfase == 'Sentenciado' %}selected{% endif %}>Sentenciado</option>
+              <option value="Recursal" {% if processo.subfase == 'Recursal' %}selected{% endif %}>Recursal</option>
+              <option value="Execução" {% if processo.subfase == 'Execução' %}selected{% endif %}>Execução</option>
+            </select>
+          </div>
+
+          <!-- Assunto -->
+          <div class="col-md-12">
+            <label for="assunto" class="form-label">Assunto Principal</label>
+            <input type="text" class="form-control" id="assunto" name="assunto" 
+                   value="{{ processo.assunto or '' }}"
+                   placeholder="Ex: Cobrança de Valores, Indenização por Danos Morais, Rescisão Contratual">
+            <div class="form-text">Descrição resumida do objeto do processo</div>
+          </div>
+
+          <!-- Valor da Causa -->
+          <div class="col-md-4">
+            <label for="valor_causa" class="form-label">Valor da Causa (R$)</label>
+            <div class="input-group">
+              <span class="input-group-text">R$</span>
+              <input type="number" class="form-control" id="valor_causa" name="valor_causa" 
+                     value="{{ processo.valor_causa or '' }}"
+                     step="0.01" min="0"
+                     placeholder="0.00">
+            </div>
+            <div class="form-text">Valor econômico atribuído ao processo</div>
+          </div>
+
+          <!-- Data de Distribuição -->
+          <div class="col-md-4">
+            <label for="data_distribuicao" class="form-label">Data de Distribuição</label>
+            <input type="date" class="form-control" id="data_distribuicao" name="data_distribuicao" 
+                   value="{{ processo.data_distribuicao or '' }}"
+                   max="{{ hoje }}">
+            <div class="form-text">Data em que o processo foi distribuído</div>
+          </div>
+
+          <!-- Data de Encerramento -->
+          <div class="col-md-4">
+            <label for="data_encerramento" class="form-label">Data de Encerramento</label>
+            <input type="date" class="form-control" id="data_encerramento" name="data_encerramento" 
+                   value="{{ processo.data_encerramento or '' }}"
+                   max="{{ hoje }}">
+            <div class="form-text">Data em que o processo foi finalizado (se aplicável)</div>
+          </div>
+
+          <!-- Sentença/Decisão -->
+          <div class="col-md-12">
+            <label for="sentenca" class="form-label">Sentença/Decisão</label>
+            <textarea class="form-control" id="sentenca" name="sentenca" rows="4"
+                      placeholder="Resumo da sentença ou decisão final (se houver)">{{ processo.sentenca or '' }}</textarea>
+            <div class="form-text">Copie aqui o texto integral ou resumo da sentença/acórdão</div>
+          </div>
+
+          <!-- Em Execução -->
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="em_execucao" name="em_execucao" 
+                     value="true" {% if processo.em_execucao %}checked{% endif %}>
+              <label class="form-check-label" for="em_execucao">
+                <strong>Processo em Fase de Execução</strong>
+              </label>
+            </div>
+            <div class="form-text">Marque se o processo está em fase executiva</div>
+          </div>
+
+          <!-- Segredo de Justiça -->
+          <div class="col-md-6">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="segredo_justica" name="segredo_justica" 
+                     value="true" {% if processo.segredo_justica %}checked{% endif %}>
+              <label class="form-check-label" for="segredo_justica">
+                <strong>Processo sob Segredo de Justiça</strong>
+              </label>
+            </div>
+            <div class="form-text">Marque se o processo tramita em segredo</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTÕES DE AÇÃO -->
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+      <a href="/processos/{{ processo.id_processo or '' }}" class="btn btn-outline-secondary">
+        <i class="bi bi-x-circle"></i> Cancelar
+      </a>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-circle"></i> Salvar Alterações
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<!-- SCRIPT DE VALIDAÇÃO BOOTSTRAP 5 -->
+<script>
+(function () {
+  'use strict'
+
+  // Validação de formulário Bootstrap 5
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms).forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      form.classList.add('was-validated')
+    }, false)
+  })
+
+  // Validação customizada: Data não pode ser futura
+  const dataDistribuicao = document.getElementById('data_distribuicao')
+  const dataEncerramento = document.getElementById('data_encerramento')
+  const hoje = new Date().toISOString().split('T')[0]
+
+  if (dataDistribuicao) {
+    dataDistribuicao.addEventListener('change', function() {
+      if (this.value > hoje) {
+        this.setCustomValidity('Data de distribuição não pode ser futura')
+      } else {
+        this.setCustomValidity('')
+      }
+    })
+  }
+
+  if (dataEncerramento) {
+    dataEncerramento.addEventListener('change', function() {
+      if (this.value > hoje) {
+        this.setCustomValidity('Data de encerramento não pode ser futura')
+      } else {
+        this.setCustomValidity('')
+      }
+    })
+  }
+
+  // Validação: Valor da causa não pode ser negativo
+  const valorCausa = document.getElementById('valor_causa')
+  if (valorCausa) {
+    valorCausa.addEventListener('input', function() {
+      if (parseFloat(this.value) < 0) {
+        this.setCustomValidity('Valor da causa deve ser positivo')
+      } else {
+        this.setCustomValidity('')
+      }
+    })
+  }
+
+  // Formatação automática do número CNJ (opcional)
+  const numeroCNJ = document.getElementById('numero_cnj')
+  if (numeroCNJ) {
+    numeroCNJ.addEventListener('input', function(e) {
+      let valor = e.target.value.replace(/\D/g, '') // Remove não-dígitos
+      if (valor.length > 20) valor = valor.substring(0, 20)
+      
+      // Formato: 0000000-00.0000.0.00.0000
+      if (valor.length >= 7) {
+        valor = valor.substring(0, 7) + '-' + valor.substring(7)
+      }
+      if (valor.length >= 11) {
+        valor = valor.substring(0, 10) + '.' + valor.substring(10)
+      }
+      if (valor.length >= 16) {
+        valor = valor.substring(0, 15) + '.' + valor.substring(15)
+      }
+      if (valor.length >= 18) {
+        valor = valor.substring(0, 17) + '.' + valor.substring(17)
+      }
+      if (valor.length >= 21) {
+        valor = valor.substring(0, 20) + '.' + valor.substring(20)
+      }
+      
+      e.target.value = valor
+    })
+  }
+  
+  // Inicializar tooltips do Bootstrap 5
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  })
+})()
+</script>
+
+<!-- ÍCONES BOOTSTRAP (se não estiverem no base.html) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

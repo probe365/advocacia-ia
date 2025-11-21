@@ -1,0 +1,30 @@
+<ul class="list-group">
+  {% for doc in documentos %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        {% if doc.type == 'image' %}
+          <a href="/processos/ui/{{ request.view_args.id_processo }}/arquivo/{{ doc.source }}" target="_blank">
+            <img src="/processos/ui/{{ request.view_args.id_processo }}/arquivo/{{ doc.source }}" alt="{{ doc.source }}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
+          </a>
+        {% endif %}
+        <div>
+          <small class="d-block">{{ doc.source or 'Nome não disponível' }}</small>
+          <small class="text-muted">Tipo: {{ doc.type or 'N/A' }} ({{ doc.chunk_count }} chunk{{ 's' if doc.chunk_count>1 }})</small>
+        </div>
+      </div>
+
+  <button class="btn btn-sm btn-outline-danger"
+      hx-delete="/processos/ui/{{ request.view_args.id_processo }}/documentos/{{ doc.source }}"
+              hx-confirm="Tem certeza que deseja excluir este documento do caso? Esta ação não pode ser desfeita."
+              hx-target="#lista-documentos"
+              hx-swap="outerHTML">
+        🗑️
+      </button>
+
+    </li>
+  {% else %}
+    <li class="list-group-item text-muted text-center placeholder-doc">
+      <small>Nenhum documento neste caso ainda.</small>
+    </li>
+  {% endfor %}
+</ul>

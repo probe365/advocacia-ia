@@ -1,0 +1,54 @@
+C4Component
+  title Component Diagram - Flask AI Legal Platform
+
+  Person(user, "User", "Lawyer / Staff interacting via browser")
+
+  Container_Boundary(app, "Flask Application", "Python / Flask 3 + Gunicorn") {
+    Component(bp_clientes, "Clientes Blueprint", "Flask Blueprint", "Client CRUD UI & API")
+    Component(bp_processos, "Processos Blueprint", "Flask Blueprint", "Process management UI & API")
+    Component(bp_documentos, "Documentos Blueprint", "Flask Blueprint", "Upload & list documents")
+    Component(bp_chat, "Chat Blueprint", "Flask Blueprint", "Chat endpoints & HTMX fragments")
+    Component(bp_auth, "Auth Blueprint", "Flask Blueprint", "Login / session handling")
+    Component(bp_metrics, "Metrics Endpoint", "Flask Route", "Exposes Prometheus metrics")
+
+    Component(mw_tenant, "Tenant Middleware", "WSGI Middleware", "Inject tenant_id from header / default")
+    Component(mw_metrics, "Metrics Middleware", "WSGI Middleware", "Latency / request counting")
+
+    Component(service_layer, "CadastroService", "Service Layer", "Business logic orchestration")
+    Component(data_access, "CadastroManager", "Data Access (raw SQL)", "CRUD + chat_turn persistence")
+
+    Component(ingestion, "Ingestion Module", "Pipeline", "Text extraction + chunking + embedding queue")
+    Component(chat_logic, "Chat Pipeline", "LangChain Orchestrator", "Context retrieval + LLM completion")
+    Component(vector_client, "Vector Store Client", "Chroma Wrapper", "Similarity search & upserts")
+    Component(openai_client, "OpenAI Client", "API Adapter", "LLM + Embeddings calls")
+    Component(authn, "Auth Session", "Flask-Login", "User session & identity")
+  }
+
+  SystemDb(db, "PostgreSQL", "Relational DB", "Domain tables + chat_turns")
+  ContainerDb_Ext(chroma, "Chroma Vector Store", "Chroma", "Persistent embeddings & metadata")
+  System_Ext(openai, "OpenAI API", "LLM / Embeddings", "External SaaS")
+
+  Rel(user, bp_clientes, "Uses", "HTTPS")
+  Rel(user, bp_processos, "Uses", "HTTPS")
+  Rel(user, bp_documentos, "Uploads", "HTTPS")
+  Rel(user, bp_chat, "Chats", "HTTPS")
+  Rel(user, bp_auth, "Authenticates", "HTTPS")
+
+  Rel(bp_chat, chat_logic, "Invoke chat flow")
+  Rel(chat_logic, vector_client, "Similarity search")
+  Rel(vector_client, chroma, "Query / upsert vectors")
+  Rel(chat_logic, openai_client, "Prompt + context")
+  Rel(openai_client, openai, "LLM & embedding requests")
+  Rel(chat_logic, data_access, "Persist chat_turns")
+
+  Rel(bp_documentos, ingestion, "Trigger ingestion")
+  Rel(ingestion, openai_client, "Embed chunks")
+  Rel(ingestion, vector_client, "Store embeddings")
+  Rel(ingestion, data_access, "Record metadata")
+
+  Rel(service_layer, data_access, "SQL ops")
+  Rel(data_access, db, "SQL queries")
+
+  Rel(bp_auth, authn, "Session mgmt")
+  Rel(bp_metrics, mw_metrics, "Exposure of collected metrics")
+  Rel(mw_tenant, service_layer, "Tenant context propagation")

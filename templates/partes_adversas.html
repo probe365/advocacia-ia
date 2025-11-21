@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Partes Adversas - {{ processo.nome_caso or 'Processo' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  
+  <!-- Header -->
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+      <i class="bi bi-people-fill"></i> Partes Adversas
+      <small class="text-muted" style="font-size:0.6em;">{{ processo.nome_caso }}</small>
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar ao Processo
+      </a>
+    </div>
+  </div>
+
+  <!-- Botão Adicionar -->
+  <div class="mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalParte" onclick="resetForm()">
+      <i class="bi bi-plus-circle"></i> Adicionar Parte Adversa
+    </button>
+  </div>
+
+  <!-- Tabela de Partes Adversas -->
+  <div class="card">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">
+        <i class="bi bi-list-ul"></i> Partes Cadastradas 
+        <span class="badge bg-light text-dark" id="total-partes">{{ partes|length }}</span>
+      </h5>
+    </div>
+    <div class="card-body">
+      
+      {% if partes %}
+        <div class="table-responsive">
+          <table class="table table-hover table-striped" id="tabela-partes">
+            <thead class="table-dark">
+              <tr>
+                <th>Tipo</th>
+                <th>Nome Completo</th>
+                <th>CPF/CNPJ</th>
+                <th>Cidade/UF</th>
+                <th>Telefone</th>
+                <th>Email</th>
+                <th>Advogado</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-partes">
+              {% for parte in partes %}
+              <tr data-parte-id="{{ parte.id }}">
+                <td>
+                  <span class="badge 
+                    {% if parte.tipo_parte == 'autor' %}bg-success
+                    {% elif parte.tipo_parte == 'reu' %}bg-danger
+                    {% elif parte.tipo_parte == 'terceiro' %}bg-secondary
+                    {% elif parte.tipo_parte == 'reclamante' %}bg-info
+                    {% elif parte.tipo_parte == 'reclamada' %}bg-warning
+                    {% else %}bg-light text-dark{% endif %}">
+                    {{ parte.tipo_parte|upper if parte.tipo_parte else 'N/A' }}
+                  </span>
+                </td>
+                <td><strong>{{ parte.nome_completo }}</strong></td>
+                <td><small>{{ parte.cpf_cnpj or '-' }}</small></td>
+                <td><small>{{ parte.cidade or '-' }}{% if parte.estado %}/{{ parte.estado }}{% endif %}</small></td>
+                <td><small>{{ parte.telefone or '-' }}</small></td>
+                <td><small>{{ parte.email or '-' }}</small></td>
+                <td><small>{{ parte.advogado_nome or '-' }}{% if parte.advogado_oab %} ({{ parte.advogado_oab }}){% endif %}</small></td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-primary" 
+                            data-parte-id="{{ parte.id }}"
+                            onclick="editarParte(this.dataset.parteId)" 
+                            title="Editar">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" 
+                            data-parte-id="{{ parte.id }}"
+                            data-parte-nome="{{ parte.nome_completo }}"
+                            onclick="excluirParte(this.dataset.parteId, this.dataset.parteNome)" 
+                            title="Excluir">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Nenhuma parte adversa cadastrada ainda. 
+          Clique em "Adicionar Parte Adversa" para começar.
+        </div>
+      {% endif %}
+      
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de Cadastro/Edição -->
+<div class="modal fade" id="modalParte" tabindex="-1" aria-labelledby="modalParteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalParteLabel">
+          <i class="bi bi-person-plus"></i> <span id="modal-title-text">Adicionar Parte Adversa</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <form id="formParte" onsubmit="salvarParte(event)" class="needs-validation" novalidate>
+        <input type="hidden" id="id_parte" name="id_parte" value="">
+        
+        <div class="modal-body">
+          
+          <!-- Seção 1: Identificação -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <strong>Identificação</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                
+                <!-- Tipo de Parte -->
+                <div class="col-md-4">
+                  <label for="tipo_parte" class="form-label">Tipo de Parte <span class="text-danger">*</span></label>
+                  <select class="form-select" id="tipo_parte" name="tipo_parte" required>
+                    <option value="">-- Selecione --</option>
+                    <option value="autor">Autor</option>
+                    <option value="reu">Réu</option>
+                    <option value="terceiro">Terceiro</option>
+                    <option value="reclamante">Reclamante</option>
+                    <option value="reclamada">Reclamada</option>
+                  </select>
+                  <div class="invalid-feedback">Por favor, selecione o tipo de parte.</div>
+                </div>
+
+                <!-- Nome Completo -->
+                <div class="col-md-8">
+                  <label for="nome_completo" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="nome_completo" name="nome_completo" required>
+                  <div class="invalid-feedback">Por favor, informe o nome completo.</div>
+                </div>
+
+                <!-- CPF/CNPJ -->
+                <div class="col-md-4">
+                  <label for="cpf_cnpj" class="form-label">CPF/CNPJ</label>
+                  <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" 
+                         placeholder="000.000.000-00"
+                         maxlength="18">
+                  <div class="form-text">11 dígitos (CPF) ou 14 (CNPJ)</div>
+                  <div id="cpf-error" class="text-danger small d-none"></div>
+                </div>
+
+                <!-- RG -->
+                <div class="col-md-4">
+                  <label for="rg" class="form-label">RG</label>
+                  <input type="text" class="form-control" id="rg" name="rg">
+                </div>
+
+                <!-- Qualificação -->
+                <div class="col-md-4">
+                  <label for="qualificacao" class="form-label">Qualificação</label>
+                  <input type="text" class="form-control" id="qualificacao" name="qualificacao"
+                         placeholder="Ex: Empresário, Advogado">
+                  <div class="form-text">Profissão ou cargo</div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 2: Endereço -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <strong>Endereço</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                
+                <!-- CEP com Busca Automática -->
+                <div class="col-md-3">
+                  <label for="cep" class="form-label">CEP</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="cep" name="cep" 
+                           placeholder="00000-000"
+                           maxlength="9"
+                           onblur="buscarCEP()">
+                    <button class="btn btn-outline-secondary" type="button" onclick="buscarCEP()">
+                      <i class="bi bi-search" id="icon-busca-cep"></i>
+                    </button>
+                  </div>
+                  <div id="cep-loading" class="text-info small d-none">
+                    <i class="spinner-border spinner-border-sm"></i> Buscando...
+                  </div>
+                </div>
+
+                <!-- Cidade -->
+                <div class="col-md-5">
+                  <label for="cidade" class="form-label">Cidade</label>
+                  <input type="text" class="form-control" id="cidade" name="cidade">
+                </div>
+
+                <!-- Estado -->
+                <div class="col-md-2">
+                  <label for="estado" class="form-label">UF</label>
+                  <input type="text" class="form-control" id="estado" name="estado" 
+                         maxlength="2"
+                         placeholder="SP"
+                         style="text-transform:uppercase;">
+                </div>
+
+                <!-- Bairro -->
+                <div class="col-md-6">
+                  <label for="bairro" class="form-label">Bairro</label>
+                  <input type="text" class="form-control" id="bairro" name="bairro">
+                </div>
+
+                <!-- Endereço Completo -->
+                <div class="col-md-12">
+                  <label for="endereco_completo" class="form-label">Endereço Completo</label>
+                  <input type="text" class="form-control" id="endereco_completo" name="endereco_completo"
+                         placeholder="Rua, nº, complemento">
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 3: Contato -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <strong>Contato</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                
+                <!-- Telefone -->
+                <div class="col-md-6">
+                  <label for="telefone" class="form-label">Telefone</label>
+                  <input type="tel" class="form-control" id="telefone" name="telefone"
+                         placeholder="(11) 98765-4321">
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6">
+                  <label for="email" class="form-label">Email</label>
+                  <input type="email" class="form-control" id="email" name="email"
+                         placeholder="exemplo@email.com">
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 4: Advogado -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <strong>Advogado da Parte</strong>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                
+                <!-- Advogado Nome -->
+                <div class="col-md-8">
+                  <label for="advogado_nome" class="form-label">Nome do Advogado</label>
+                  <input type="text" class="form-control" id="advogado_nome" name="advogado_nome">
+                </div>
+
+                <!-- Advogado OAB -->
+                <div class="col-md-4">
+                  <label for="advogado_oab" class="form-label">OAB</label>
+                  <input type="text" class="form-control" id="advogado_oab" name="advogado_oab"
+                         placeholder="SP123456">
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 5: Observações -->
+          <div class="card">
+            <div class="card-header bg-light">
+              <strong>Observações</strong>
+            </div>
+            <div class="card-body">
+              <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                        placeholder="Informações adicionais sobre esta parte"></textarea>
+            </div>
+          </div>
+
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Salvar
+          </button>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script>
+const ID_PROCESSO = "{{ processo.id_processo }}";
+let parteEditandoId = null;
+
+// ========== FUNÇÕES DE VALIDAÇÃO ==========
+
+function validarCPFCNPJ(value) {
+  if (!value) return true; // Campo opcional
+  
+  const numeros = value.replace(/\D/g, '');
+  
+  if (numeros.length === 11) {
+    // CPF - validação básica (não todos dígitos iguais)
+    if (/^(\d)\1{10}$/.test(numeros)) return false;
+    return true;
+  } else if (numeros.length === 14) {
+    // CNPJ - validação básica
+    if (/^(\d)\1{13}$/.test(numeros)) return false;
+    return true;
+  }
+  
+  return false; // Tamanho inválido
+}
+
+// ========== BUSCA CEP (VIACEP) ==========
+
+async function buscarCEP() {
+  const cep = document.getElementById('cep').value.replace(/\D/g, '');
+  
+  if (cep.length !== 8) {
+    return;
+  }
+  
+  const loadingEl = document.getElementById('cep-loading');
+  const iconEl = document.getElementById('icon-busca-cep');
+  
+  loadingEl.classList.remove('d-none');
+  iconEl.classList.add('d-none');
+  
+  try {
+    const response = await fetch(`/processos/api/viacep/${cep}`);
+    const data = await response.json();
+    
+    if (data.status === 'sucesso') {
+      const endereco = data.endereco;
+      
+      // Preencher campos se estiverem vazios
+      if (!document.getElementById('cidade').value) {
+        document.getElementById('cidade').value = endereco.cidade;
+      }
+      if (!document.getElementById('estado').value) {
+        document.getElementById('estado').value = endereco.estado;
+      }
+      if (!document.getElementById('bairro').value) {
+        document.getElementById('bairro').value = endereco.bairro;
+      }
+      if (!document.getElementById('endereco_completo').value && endereco.logradouro) {
+        document.getElementById('endereco_completo').value = endereco.logradouro;
+      }
+      
+      // Feedback visual
+      document.getElementById('cep').classList.add('is-valid');
+      setTimeout(() => document.getElementById('cep').classList.remove('is-valid'), 2000);
+    } else {
+      alert('CEP não encontrado');
+    }
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    alert('Erro ao consultar CEP. Tente novamente.');
+  } finally {
+    loadingEl.classList.add('d-none');
+    iconEl.classList.remove('d-none');
+  }
+}
+
+// ========== CRUD FUNCTIONS ==========
+
+function resetForm() {
+  document.getElementById('formParte').reset();
+  document.getElementById('id_parte').value = '';
+  document.getElementById('modal-title-text').textContent = 'Adicionar Parte Adversa';
+  document.getElementById('formParte').classList.remove('was-validated');
+  document.getElementById('cpf-error').classList.add('d-none');
+  parteEditandoId = null;
+}
+
+async function salvarParte(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  const form = document.getElementById('formParte');
+  
+  // Validação Bootstrap
+  if (!form.checkValidity()) {
+    form.classList.add('was-validated');
+    return;
+  }
+  
+  // Validação CPF/CNPJ
+  const cpfCnpj = document.getElementById('cpf_cnpj').value;
+  if (cpfCnpj && !validarCPFCNPJ(cpfCnpj)) {
+    document.getElementById('cpf-error').textContent = 'CPF/CNPJ inválido. Deve ter 11 (CPF) ou 14 (CNPJ) dígitos.';
+    document.getElementById('cpf-error').classList.remove('d-none');
+    return;
+  } else {
+    document.getElementById('cpf-error').classList.add('d-none');
+  }
+  
+  // Coletar dados do formulário
+  const formData = new FormData(form);
+  const dados = {};
+  formData.forEach((value, key) => {
+    if (key !== 'id_parte' && value) {
+      dados[key] = value;
+    }
+  });
+  
+  const idParte = document.getElementById('id_parte').value;
+  const isEdicao = !!idParte;
+  
+  const url = isEdicao 
+    ? `/processos/api/${ID_PROCESSO}/partes-adversas/${idParte}`
+    : `/processos/api/${ID_PROCESSO}/partes-adversas`;
+  
+  const method = isEdicao ? 'PUT' : 'POST';
+  
+  try {
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(dados)
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Fechar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalParte'));
+      modal.hide();
+      
+      // Recarregar página
+      window.location.reload();
+    } else {
+      alert(`Erro: ${result.mensagem || 'Falha ao salvar'}`);
+    }
+  } catch (error) {
+    console.error('Erro ao salvar parte:', error);
+    alert('Erro ao salvar parte adversa. Tente novamente.');
+  }
+}
+
+async function editarParte(idParte) {
+  try {
+    const response = await fetch(`/processos/api/${ID_PROCESSO}/partes-adversas/${idParte}`);
+    const result = await response.json();
+    
+    if (response.ok) {
+      const parte = result.parte;
+      
+      // Preencher formulário
+      document.getElementById('id_parte').value = parte.id;
+      document.getElementById('tipo_parte').value = parte.tipo_parte || '';
+      document.getElementById('nome_completo').value = parte.nome_completo || '';
+      document.getElementById('cpf_cnpj').value = parte.cpf_cnpj || '';
+      document.getElementById('rg').value = parte.rg || '';
+      document.getElementById('qualificacao').value = parte.qualificacao || '';
+      document.getElementById('cep').value = parte.cep || '';
+      document.getElementById('cidade').value = parte.cidade || '';
+      document.getElementById('estado').value = parte.estado || '';
+      document.getElementById('bairro').value = parte.bairro || '';
+      document.getElementById('endereco_completo').value = parte.endereco_completo || '';
+      document.getElementById('telefone').value = parte.telefone || '';
+      document.getElementById('email').value = parte.email || '';
+      document.getElementById('advogado_nome').value = parte.advogado_nome || '';
+      document.getElementById('advogado_oab').value = parte.advogado_oab || '';
+      document.getElementById('observacoes').value = parte.observacoes || '';
+      
+      // Atualizar título do modal
+      document.getElementById('modal-title-text').textContent = 'Editar Parte Adversa';
+      
+      parteEditandoId = idParte;
+      
+      // Abrir modal
+      const modal = new bootstrap.Modal(document.getElementById('modalParte'));
+      modal.show();
+    } else {
+      alert(`Erro: ${result.mensagem || 'Falha ao carregar'}`);
+    }
+  } catch (error) {
+    console.error('Erro ao editar parte:', error);
+    alert('Erro ao carregar parte adversa. Tente novamente.');
+  }
+}
+
+async function excluirParte(idParte, nome) {
+  if (!confirm(`Tem certeza que deseja excluir a parte adversa "${nome}"?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/processos/api/${ID_PROCESSO}/partes-adversas/${idParte}`, {
+      method: 'DELETE'
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Remover linha da tabela
+      const row = document.querySelector(`tr[data-parte-id="${idParte}"]`);
+      if (row) {
+        row.remove();
+      }
+      
+      // Atualizar contador
+      const tbody = document.getElementById('tbody-partes');
+      const total = tbody.querySelectorAll('tr').length;
+      document.getElementById('total-partes').textContent = total;
+      
+      // Se não houver mais partes, recarregar página para mostrar mensagem
+      if (total === 0) {
+        window.location.reload();
+      }
+    } else {
+      alert(`Erro: ${result.mensagem || 'Falha ao excluir'}`);
+    }
+  } catch (error) {
+    console.error('Erro ao excluir parte:', error);
+    alert('Erro ao excluir parte adversa. Tente novamente.');
+  }
+}
+
+// ========== VALIDAÇÃO BOOTSTRAP 5 ==========
+
+(function () {
+  'use strict'
+  const forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms).forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      form.classList.add('was-validated')
+    }, false)
+  })
+})()
+
+// ========== MÁSCARA CEP ==========
+
+document.getElementById('cep').addEventListener('input', function(e) {
+  let valor = e.target.value.replace(/\D/g, '');
+  if (valor.length > 8) valor = valor.substring(0, 8);
+  
+  if (valor.length >= 5) {
+    valor = valor.substring(0, 5) + '-' + valor.substring(5);
+  }
+  
+  e.target.value = valor;
+});
+
+// ========== MÁSCARA CPF/CNPJ ==========
+
+document.getElementById('cpf_cnpj').addEventListener('input', function(e) {
+  let valor = e.target.value.replace(/\D/g, '');
+  
+  if (valor.length <= 11) {
+    // CPF: 000.000.000-00
+    if (valor.length > 9) {
+      valor = valor.substring(0, 3) + '.' + valor.substring(3, 6) + '.' + valor.substring(6, 9) + '-' + valor.substring(9);
+    } else if (valor.length > 6) {
+      valor = valor.substring(0, 3) + '.' + valor.substring(3, 6) + '.' + valor.substring(6);
+    } else if (valor.length > 3) {
+      valor = valor.substring(0, 3) + '.' + valor.substring(3);
+    }
+  } else {
+    // CNPJ: 00.000.000/0000-00
+    if (valor.length > 14) valor = valor.substring(0, 14);
+    
+    if (valor.length > 12) {
+      valor = valor.substring(0, 2) + '.' + valor.substring(2, 5) + '.' + valor.substring(5, 8) + '/' + valor.substring(8, 12) + '-' + valor.substring(12);
+    } else if (valor.length > 8) {
+      valor = valor.substring(0, 2) + '.' + valor.substring(2, 5) + '.' + valor.substring(5, 8) + '/' + valor.substring(8);
+    } else if (valor.length > 5) {
+      valor = valor.substring(0, 2) + '.' + valor.substring(2, 5) + '.' + valor.substring(5);
+    } else if (valor.length > 2) {
+      valor = valor.substring(0, 2) + '.' + valor.substring(2);
+    }
+  }
+  
+  e.target.value = valor;
+});
+</script>
+
+<!-- ÍCONES BOOTSTRAP (se não estiverem no base.html) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

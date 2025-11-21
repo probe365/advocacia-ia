@@ -1,0 +1,45 @@
+{% for cliente in clientes %}
+<div class="col-md-6 col-lg-4 mb-4">
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">{{ cliente.nome_completo }}</h5>
+      <h6 class="card-subtitle mb-2 text-muted">{{ cliente.cpf_cnpj }}</h6>
+      <p class="card-text mb-1">
+        <small>
+          <strong>Email:</strong> {{ cliente.email or 'Não informado' }}<br>
+          <strong>Telefone:</strong> {{ cliente.telefone or 'Não informado' }}
+        </small>
+      </p>
+      
+  <a href="#" class="card-link"
+     hx-get="/processos/ui/{{ cliente.id_cliente }}/processos"
+         hx-target="#processos-{{ cliente.id_cliente }}"
+         hx-swap="innerHTML">
+         Ver Processos
+      </a>
+      
+  <a href="#" class="card-link text-secondary"
+     data-bs-toggle="modal" data-bs-target="#clienteModal"
+     hx-get="/clientes/ui/{{ cliente.id_cliente }}/editform"
+         hx-target="#clienteModalBody">
+         Editar
+      </a>
+
+  <a href="#" class="card-link text-danger"
+     hx-delete="/clientes/api/{{ cliente.id_cliente }}"
+         hx-confirm="Tem certeza que deseja excluir este cliente? Todos os seus processos e documentos também serão apagados. Esta ação não pode ser desfeita."
+         hx-target="closest .col-lg-4"  hx-swap="outerHTML">
+         Excluir
+      </a>
+      
+      <div id="processos-{{ cliente.id_cliente }}"></div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="col-12">
+    <div class="alert alert-info" role="alert">
+      Nenhum cliente cadastrado ainda.
+    </div>
+</div>
+{% endfor %}

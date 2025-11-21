@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}{{ processo.nome_caso or 'Painel do Processo' }} - Advocacia e IA{% endblock %}
+
+{% block content %}
+{% if processo %}
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2">Processo: {{ processo.nome_caso }} <small class="text-muted" style="font-size:0.6em;">(<span id="case-code">{{ case_code }}</span>)</small>
+    <button class="btn btn-outline-secondary btn-sm ms-2" type="button" onclick="navigator.clipboard.writeText('{{ case_code }}').then(()=>{this.innerText='Copiado'; setTimeout(()=>this.innerText='Copiar código',1500);});">Copiar código</button>
+  </h1>
+  <a href="/clientes/" class="btn btn-sm btn-outline-secondary">Voltar para Clientes</a>
+  </div>
+
+  <div id="advogado-banner" class="alert alert-info py-2 small">
+    {% if advogado %}
+      <strong>Advogado Responsável:</strong> {{ advogado.nome }} (OAB {{ advogado.oab }}){% if advogado.area_atuacao %} - Área: {{ advogado.area_atuacao }}{% endif %}
+    {% else %}
+      <em>Nenhum advogado associado a este processo.</em>
+    {% endif %}
+    {% if processo.tipo_parte %}
+      <br><strong>Papel do Cliente:</strong> <span class="badge bg-primary">{{ processo.tipo_parte|upper }}</span>
+    {% endif %}
+  </div>
+  <div class="mb-3">
+    <form class="row row-cols-lg-auto g-2 align-items-center"
+          hx-post="/processos/ui/{{ processo.id_processo }}/atualizar_advogado"
+          hx-target="#advogado-banner" hx-swap="outerHTML">
+      <div class="col-12">
+        <select name="advogado_oab" class="form-select form-select-sm" required>
+          <option value="">-- Selecionar advogado --</option>
+          {% for a in advogados %}
+            <option value="{{ a.oab }}" {% if processo.advogado_oab == a.oab %}selected{% endif %}>{{ a.nome }} (OAB {{ a.oab }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
+      </div>
+      <div class="col-12"><small class="text-muted">Trocar responsável</small></div>
+    </form>
+  </div>
+  <div class="mb-3">
+    <form class="row row-cols-lg-auto g-2 align-items-center"
+          hx-post="/processos/ui/{{ processo.id_processo }}/atualizar_tipo_parte"
+          hx-target="#advogado-banner" hx-swap="outerHTML">
+      <div class="col-12">
+        <select name="tipo_parte" class="form-select form-select-sm">
+          <option value="">-- Sem papel definido --</option>
+          <option value="autor" {% if processo.tipo_parte == 'autor' %}selected{% endif %}>Autor - Iniciando a ação</option>
+          <option value="reu" {% if processo.tipo_parte == 'reu' %}selected{% endif %}>Réu - Sendo processado</option>
+          <option value="terceiro" {% if processo.tipo_parte == 'terceiro' %}selected{% endif %}>Terceiro - Participante</option>
+          <option value="reclamante" {% if processo.tipo_parte == 'reclamante' %}selected{% endif %}>Reclamante - Trabalhador</option>
+          <option value="reclamada" {% if processo.tipo_parte == 'reclamada' %}selected{% endif %}>Reclamada - Empregador</option>
+        </select>
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-sm btn-outline-warning">Atualizar Papel</button>
+      </div>
+      <div class="col-12"><small class="text-muted">Papel do cliente no processo</small></div>
+    </form>
+  </div>
+  <script>
+  // (Opcional) Recarregar lista de advogados dinamicamente caso haja alterações sem refresh completo
+  (function(){
+    const sel = document.querySelector('form [name="advogado_oab"]');
+    if(!sel) return;
+    fetch('/escritorio/api/advogados').then(r=>r.json()).then(data=>{
+      const current = sel.value || '{{ processo.advogado_oab or "" }}';
+      const existing = new Set(Array.from(sel.options).map(o=>o.value));
+      data.forEach(a=>{ if(!existing.has(a.oab)){ const opt=document.createElement('option'); opt.value=a.oab; opt.textContent=`${a.nome} (OAB ${a.oab})`; if(current===a.oab) opt.selected=true; sel.appendChild(opt);} });
+    }).catch(()=>{});
+  })();
+  </script>
+
+  <div class="row g-5">
+    <div class="col-md-5 col-lg-4 order-md-last">
+      <h4 class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-primary">Detalhes do Caso</span>
+      </h4>
+      <h4 class="d-flex justify-content-between align-items-center mb-3 mt-4">
+  <span class="text-primary">Documentos <span class="badge bg-secondary" id="doc-count">{{ documentos|length }}</span></span>
+        <button class="btn btn-sm btn-success"
+                data-bs-toggle="modal" data-bs-target="#uploadModal"
+                hx-get="/processos/ui/{{ processo.id_processo }}/uploadform"
+                hx-target="#uploadModalBody">
+          +
+        </button>
+      </h4>
+      
+      <div id="lista-documentos">
+        {% include '_lista_documentos.html' %}
+      </div>
+      <hr class="mt-4">
+      <div class="mt-3">
+        <h6 class="text-muted">Base de Conhecimento</h6>
+        <a href="/kb/ui/painel" class="btn btn-outline-info btn-sm w-100">Gerir KB Global</a>
+      </div>
+    </div>
+
+  <div class="col-md-7 col-lg-8">
+    <ul class="nav nav-tabs" id="tabs-analise" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-resumo" data-bs-toggle="tab" data-bs-target="#pane-resumo" type="button" role="tab">Resumo</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-chat" data-bs-toggle="tab" data-bs-target="#pane-chat" type="button" role="tab">Chat</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-estrategia" data-bs-toggle="tab" data-bs-target="#pane-estrategia" type="button" role="tab">Análise Estratégica</button>
+      </li>
+      <li class="nav-item" role="presentation">
+  <button class="nav-link" id="tab-firac" data-bs-toggle="tab" data-bs-target="#pane-firac" type="button" role="tab">FIRAC</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-ementas" data-bs-toggle="tab" data-bs-target="#pane-ementas" type="button" role="tab">Ementas</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-peticao" data-bs-toggle="tab" data-bs-target="#pane-peticao" type="button" role="tab">Petição</button>
+      </li>
+    </ul>
+    <div class="tab-content border border-top-0 rounded-bottom p-3 bg-dark-subtle" id="tabs-analise-conteudo" style="min-height:340px;">
+      <div class="tab-pane fade show active" id="pane-resumo" role="tabpanel" aria-labelledby="tab-resumo">
+  <input type="hidden" id="focus-resumo" value="">
+        <button class="btn btn-primary btn-sm"
+                hx-post="/processos/ui/{{ processo.id_processo }}/resumo"
+                hx-target="#resultado-analise"
+                hx-vals='js:{focus: document.getElementById("focus-resumo").value}'
+                hx-indicator="#spinner-analise">
+          Gerar Resumo do Caso
+        </button>
+        <div id="spinner-analise" class="htmx-indicator spinner-border spinner-border-sm ms-2" role="status">
+          <span class="visually-hidden">Analisando...</span>
+        </div>
+        <div id="resultado-analise" class="mt-3"></div>
+      </div>
+      <div class="tab-pane fade" id="pane-chat" role="tabpanel" aria-labelledby="tab-chat">
+        <div class="alert alert-secondary p-2 mb-2">Contexto do processo: <strong>{{ case_code }}</strong></div>
+        <div id="chat-container" class="border rounded p-3 mb-3" style="height:38vh; overflow-y:auto; background:rgba(255,255,255,0.02)">
+          {% include '_conversa_chat.html' %}
+        </div>
+        <form
+          hx-post="/processos/ui/{{ processo.id_processo }}/chat"
+          hx-target="#chat-container"
+          hx-swap="innerHTML"
+          hx-on="htmx:afterRequest: this.reset()"
+        >
+          <div class="mb-1">
+            <small class="text-muted">Escopo de busca:</small>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="scope" id="scope-case" value="case" checked>
+              <label class="form-check-label" for="scope-case">Caso</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="scope" id="scope-kb" value="kb">
+              <label class="form-check-label" for="scope-kb">KB</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="scope" id="scope-both" value="both">
+              <label class="form-check-label" for="scope-both">Ambos</label>
+            </div>
+          </div>
+          <div class="input-group mb-1">
+            <input type="text" class="form-control" name="query" placeholder="Faça sua pergunta sobre o caso..." required>
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+      <div class="tab-pane fade" id="pane-estrategia" role="tabpanel" aria-labelledby="tab-estrategia">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label small text-muted">Foco (opcional) para refinar análise</label>
+            <input type="text" id="focus-estrategia" class="form-control form-control-sm" placeholder="Ex: risco de sucumbência, acordo, prova pericial">
+            <div class="d-flex gap-2 mt-2">
+              <button class="btn btn-outline-warning btn-sm"
+                      hx-post="/processos/ui/{{ processo.id_processo }}/analise/riscos"
+                      hx-vals='js:{focus: document.getElementById("focus-estrategia").value}'
+                      hx-target="#riscos-output" hx-indicator="#spin-riscos">Identificar Riscos Legais</button>
+              <div id="spin-riscos" class="htmx-indicator spinner-border spinner-border-sm" role="status"><span class="visually-hidden">...</span></div>
+              <button class="btn btn-outline-success btn-sm"
+                      hx-post="/processos/ui/{{ processo.id_processo }}/analise/proximos_passos"
+                      hx-vals='js:{focus: document.getElementById("focus-estrategia").value}'
+                      hx-target="#passos-output" hx-indicator="#spin-passos">Sugerir Próximos Passos</button>
+              <div id="spin-passos" class="htmx-indicator spinner-border spinner-border-sm" role="status"><span class="visualmente-hidden">...</span></div>
+            </div>
+            <small class="text-muted d-block mt-1">Os prompts usam o contexto documental e a KB (se houver) para gerar respostas estruturadas.</small>
+          </div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Riscos Identificados</h6>
+            <div id="riscos-output" class="border rounded p-2 bg-body-tertiary" style="min-height:140px;font-size:0.85rem;"></div>
+          </div>
+          <div class="col-md-6">
+            <h6>Próximos Passos & Oportunidades</h6>
+            <div id="passos-output" class="border rounded p-2 bg-body-tertiary" style="min-height:140px;font-size:0.85rem;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="pane-firac" role="tabpanel" aria-labelledby="tab-firac">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label small text-muted">Foco (opcional) para FIRAC</label>
+            <input type="text" id="focus-firac" class="form-control form-control-sm" placeholder="Ex: nulidade contratual, danos morais">
+            <div class="mt-2 d-flex gap-2 align-items-center">
+              <button class="btn btn-outline-primary btn-sm"
+                      hx-post="/processos/ui/{{ processo.id_processo }}/analise/firac"
+                      hx-vals='js:{focus: document.getElementById("focus-firac").value}'
+                      hx-target="#firac-output" hx-indicator="#spin-firac">Gerar FIRAC</button>
+        <button class="btn btn-outline-secondary btn-sm"
+          hx-post="/processos/ui/{{ processo.id_processo }}/analise/firac/export/pdf"
+          hx-vals='js:{focus: document.getElementById("focus-firac").value}'
+          hx-target="#firac-export-area" hx-swap="innerHTML" hx-indicator="#spin-firac">Exportar PDF</button>
+              <div id="spin-firac" class="htmx-indicator spinner-border spinner-border-sm" role="status"><span class="visually-hidden">...</span></div>
+            </div>
+            <small class="text-muted">Baseado no resumo mais recente + foco.</small>
+          </div>
+        </div>
+        <hr>
+        <div id="firac-output" class="border rounded p-2 bg-body-tertiary" style="min-height:180px;font-size:0.85rem;"></div>
+  <div id="firac-export-area" class="mt-2"></div>
+      </div>
+      <div class="tab-pane fade" id="pane-ementas" role="tabpanel" aria-labelledby="tab-ementas">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="small text-muted mb-0">Pesquisa de Ementas por Similaridade</div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="close-ementas-btn">Fechar</button>
+        </div>
+        <div id="ementas-loader" class="text-center my-3"><div class="spinner-border" role="status"><span class="visually-hidden">Carregando...</span></div></div>
+        <div id="ementas-frame-wrapper" class="d-none">
+          <iframe id="ementas-iframe" src="/ementas/ui/painel" style="width:100%;height:60vh;border:1px solid #444;border-radius:4px;background:#111;" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="pane-peticao" role="tabpanel" aria-labelledby="tab-peticao">
+        <div id="peticao-form-area" class="mb-2" hx-get="/processos/ui/{{ processo.id_processo }}/peticao/form" hx-trigger="revealed once" hx-target="#peticao-form-area" hx-swap="innerHTML">
+          <div class="text-muted small">Carregando formulário...</div>
+        </div>
+        <div id="peticao-result"></div>
+      </div>
+    </div>
+  </div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body" id="uploadModalBody">
+        <div class="text-center"><div class="spinner-border" role="status"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bloco de chat duplicado removido -->
+
+<script>
+// Auto-scroll para o final após atualização
+// Ajuste de scroll para ordem invertida (novas mensagens no topo): manter posição relativa
+document.addEventListener('htmx:beforeSwap', function(evt){
+  if(evt.target && evt.target.id === 'chat-container'){
+    // Captura offset do topo para preservar após substituição
+    evt.detail.shouldSwap = true;
+  }
+});
+</script>
+
+<script>
+document.body.addEventListener('fecharUploadModal', function(){
+  const modalEl = document.getElementById('uploadModal');
+  if (modalEl) {
+    const m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+    m.hide();
+  }
+  // Atualiza contagem de docs com base nos itens na lista
+  const count = document.querySelectorAll('#lista-documentos li.list-group-item').length;
+  const badge = document.getElementById('doc-count');
+  if (badge) badge.textContent = count;
+});
+</script>
+
+<script>
+// Atualiza contagem de documentos inicial (exclui placeholder)
+(function(){
+  const badge = document.getElementById('doc-count');
+  if(badge){
+    const real = Array.from(document.querySelectorAll('#lista-documentos li.list-group-item'))
+      .filter(li=>!li.classList.contains('placeholder-doc')).length;
+    badge.textContent = real;
+  }
+})();
+// Recalcula após swaps na lista
+ document.addEventListener('htmx:afterSwap', function(evt){
+   if(evt.target && evt.target.id==='lista-documentos'){
+     const badge = document.getElementById('doc-count');
+     if(badge){
+       const real = Array.from(document.querySelectorAll('#lista-documentos li.list-group-item'))
+         .filter(li=>!li.classList.contains('placeholder-doc')).length;
+       badge.textContent = real;
+     }
+   }
+ });
+</script>
+
+<script>
+// Lazy load Ementas iframe on first tab activation
+(function(){
+  let loaded = false;
+  const tabEl = document.getElementById('tab-ementas');
+  if(!tabEl) return;
+  tabEl.addEventListener('shown.bs.tab', function(){
+    if(loaded) return;
+    const frameWrap = document.getElementById('ementas-frame-wrapper');
+    const loader = document.getElementById('ementas-loader');
+    if(frameWrap){
+      frameWrap.classList.remove('d-none');
+    }
+    if(loader){ loader.remove(); }
+    loaded = true;
+    // Ajustar conteúdo interno após load para esconder header duplicado e alterar botão Sair
+    const iframe = document.getElementById('ementas-iframe');
+    iframe.addEventListener('load', function(){
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        // Esconde navbar/header principal dentro do iframe
+        const nav = doc.querySelector('nav.navbar, header');
+        if(nav) nav.style.display='none';
+        // Ajusta padding/margin do body para compensar header removido
+        doc.body.style.paddingTop='0';
+        // Remoção / neutralização persistente do botão Sair dentro do iframe
+        const neutralizeSair = () => {
+          const sairBtns = Array.from(doc.querySelectorAll('a,button')).filter(el=>/sair/i.test(el.textContent||''));
+          sairBtns.forEach(el=>{
+            el.onclick = (ev)=>{ ev.preventDefault(); const resumoTab = parent.document.getElementById('tab-resumo'); if(resumoTab){ new parent.bootstrap.Tab(resumoTab).show(); }};
+            el.style.display='none';
+          });
+        };
+        neutralizeSair();
+        // Tenta novamente algumas vezes caso carregado async
+        let tries = 0; const intv = setInterval(()=>{ tries++; neutralizeSair(); if(tries>10) clearInterval(intv); }, 400);
+      } catch(e){ console.warn('Não conseguiu ajustar iframe ementas:', e); }
+    });
+  });
+})();
+</script>
+<script>
+// Botão fechar ementas -> volta ao Resumo
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id === 'close-ementas-btn'){
+    const resumoTab = document.getElementById('tab-resumo');
+    if(resumoTab){ new bootstrap.Tab(resumoTab).show(); }
+  }
+});
+</script>
+
+{% else %}
+  <div class="alert alert-danger mt-4" role="alert">
+    Processo não encontrado ou erro ao carregar os dados.
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+flowchart TD
+  A[Browser User] --> B[Flask App\nGunicorn wsgi:app]
+  subgraph App_Layer
+    B --> C[Blueprints\nclientes / processos / documentos / chat]
+    C --> S[Service Layer\nCadastroService]
+    S --> M[(PostgreSQL)]
+    C --> P[AI Pipeline\nLangChain + OpenAI]
+    P --> V[(Chroma Store)]
+    V --> FS[(Embeddings Disk)]
+    S --> CH[(chat_turns)]
+  end
+  M <-->|Alembic| D[alembic/versions]
+  B --> MET[/metrics endpoint/]
+  B --> L[Flask-Login]

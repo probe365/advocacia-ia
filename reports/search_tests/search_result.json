@@ -1,0 +1,85 @@
+{
+  "query": "ação de indenização por danos morais em contrato bancário",
+  "results": [
+    {
+      "rank": 1,
+      "score": -0.5850167274475098,
+      "id": "000821729",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 2,
+      "score": -0.5964200496673584,
+      "id": "000890503",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 3,
+      "score": -0.6211731433868408,
+      "id": "000849188",
+      "title": "AgInt no REsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 4,
+      "score": -0.6514666080474854,
+      "id": "000864986",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 5,
+      "score": -0.6593244075775146,
+      "id": "000842366",
+      "title": "AgInt no AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 6,
+      "score": -0.7001066207885742,
+      "id": "000860631",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 7,
+      "score": -0.7559390068054199,
+      "id": "000840462",
+      "title": "AgInt no REsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 8,
+      "score": -0.8082129955291748,
+      "id": "000847300",
+      "title": "AgInt no REsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 9,
+      "score": -0.8305970430374146,
+      "id": "000839542",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    },
+    {
+      "rank": 10,
+      "score": -0.8336446285247803,
+      "id": "000905312",
+      "title": "AgInt no AREsp",
+      "source": null,
+      "text_excerpt": ""
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% block title %}Base de Conhecimento{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0"><i class="bi bi-book"></i> Base de Conhecimento Global</h2>
+  <a href="/clientes/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-3">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <h4 class="mb-0 text-primary">{{ kb_stats.total }}</h4>
+        <small class="text-muted">Total Documentos</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <h4 class="mb-0 text-success">{{ kb_stats.pdf }}</h4>
+        <small class="text-muted"><i class="bi bi-file-pdf"></i> PDFs</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <h4 class="mb-0 text-info">{{ kb_stats.image }}</h4>
+        <small class="text-muted"><i class="bi bi-image"></i> Imagens</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body py-2">
+        <h4 class="mb-0 text-warning">{{ kb_stats.audio + kb_stats.video }}</h4>
+        <small class="text-muted"><i class="bi bi-play-circle"></i> Mídia</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Coluna Esquerda: Upload + Busca -->
+  <div class="col-md-4">
+    <!-- Upload -->
+    <div class="card mb-3">
+      <div class="card-header bg-primary text-white">
+        <i class="bi bi-cloud-upload"></i> Adicionar Documento
+      </div>
+      <div class="card-body">
+        <form id="kb-upload-form" hx-post="/kb/ui/upload" method="post" hx-target="#kb-files" hx-swap="innerHTML" hx-encoding="multipart/form-data" enctype="multipart/form-data" hx-indicator="#kb-upload-indicator">
+          <input class="form-control form-control-sm mb-2" type="file" name="file" required>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-primary btn-sm w-100" type="submit">
+              <i class="bi bi-upload"></i> Enviar
+            </button>
+            <div id="kb-upload-indicator" class="spinner-border spinner-border-sm text-secondary" role="status" style="display:none;"><span class="visually-hidden">...</span></div>
+          </div>
+        </form>
+        <hr>
+        <small class="text-muted d-block">
+          <strong>Formatos aceitos:</strong><br>
+          <i class="bi bi-file-pdf text-danger"></i> PDF &nbsp;
+          <i class="bi bi-file-text text-info"></i> TXT &nbsp;
+          <i class="bi bi-image text-primary"></i> JPG/PNG<br>
+          <i class="bi bi-mic text-success"></i> MP3/WAV &nbsp;
+          <i class="bi bi-camera-video text-warning"></i> MP4/MOV
+        </small>
+      </div>
+    </div>
+
+    <!-- Busca Semântica -->
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <i class="bi bi-search"></i> Busca Semântica
+      </div>
+      <div class="card-body">
+        <form id="kb-search-form" hx-post="/kb/ui/search" hx-target="#kb-search-results" hx-indicator="#kb-search-indicator">
+          <div class="input-group mb-2">
+            <input type="text" class="form-control form-control-sm" name="query" placeholder="Ex: jurisprudência trabalhista" required>
+            <button class="btn btn-success btn-sm" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          <div id="kb-search-indicator" class="text-center" style="display:none;">
+            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+            <small class="d-block text-muted">Buscando...</small>
+          </div>
+        </form>
+        <div id="kb-search-results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna Direita: Lista de Arquivos -->
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-files"></i> Documentos Cadastrados</h5>
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn btn-outline-secondary" onclick="filterKB('all')" id="filter-all">Todos</button>
+            <button class="btn btn-outline-danger" onclick="filterKB('pdf')" id="filter-pdf">PDF</button>
+            <button class="btn btn-outline-primary" onclick="filterKB('image')" id="filter-image">Imagem</button>
+            <button class="btn btn-outline-success" onclick="filterKB('audio')" id="filter-audio">Áudio</button>
+            <button class="btn btn-outline-warning" onclick="filterKB('video')" id="filter-video">Vídeo</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+        <div id="kb-files">
+          {% include '_lista_kb.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // HTMX Events
+  document.addEventListener('htmx:beforeRequest', e => {
+    if(e.target.id==='kb-upload-form') console.log('[KB] Upload iniciado');
+    if(e.target.id==='kb-search-form') console.log('[KB] Busca iniciada');
+  });
+  document.addEventListener('htmx:afterSwap', e => {
+    if(e.target.id==='kb-files') {
+      console.log('[KB] Lista atualizada');
+      document.getElementById('kb-upload-form').reset();
+    }
+  });
+
+  // Filtro de arquivos
+  let currentFilter = 'all';
+  function filterKB(type) {
+    currentFilter = type;
+    const items = document.querySelectorAll('.kb-file-item');
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('filter-' + type).classList.add('active');
+    
+    items.forEach(item => {
+      if(type === 'all' || item.dataset.type === type) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+  
+  // Debug de arquivo
+  function debugFile(filename) {
+    fetch('/kb/ui/debug/' + filename)
+      .then(response => response.text())
+      .then(html => {
+        // Criar modal temporário para mostrar debug
+        const modalHtml = `
+          <div class="modal fade" id="debugModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                  <h5 class="modal-title"><i class="bi bi-bug"></i> Debug de Indexação</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">${html}</div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Remover modal anterior se existir
+        const oldModal = document.getElementById('debugModal');
+        if(oldModal) oldModal.remove();
+        
+        // Adicionar e mostrar modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('debugModal'));
+        modal.show();
+        
+        // Remover do DOM quando fechar
+        document.getElementById('debugModal').addEventListener('hidden.bs.modal', function() {
+          this.remove();
+        });
+      })
+      .catch(error => {
+        console.error('Erro ao buscar debug:', error);
+        alert('Erro ao carregar informações de debug');
+      });
+  }
+  
+  // Re-indexar arquivo
+  function reindexFile(filename) {
+    if(!confirm('Re-indexar "' + decodeURIComponent(filename) + '"? Isso pode levar alguns segundos.')) {
+      return;
+    }
+    
+    const resultDiv = document.querySelector('[id^="reindex-result-"]');
+    if(resultDiv) resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm text-primary mt-2"></div> Re-indexando...';
+    
+    fetch('/kb/ui/reindex/' + filename, {method: 'POST'})
+      .then(response => response.text())
+      .then(html => {
+        if(resultDiv) resultDiv.innerHTML = html;
+        
+        // Se sucesso, fechar modal após 2s e recarregar página
+        if(html.includes('alert-success')) {
+          setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('debugModal'));
+            if(modal) modal.hide();
+            window.location.reload();
+          }, 2000);
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao re-indexar:', error);
+        if(resultDiv) resultDiv.innerHTML = '<div class="alert alert-danger mt-2">Erro ao re-indexar</div>';
+      });
+  }
+  
+  // Visualizar documento completo
+  function viewFullDocument(filename) {
+    fetch('/kb/ui/view/' + filename)
+      .then(response => response.text())
+      .then(html => {
+        const modalHtml = `
+          <div class="modal fade" id="viewDocModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title"><i class="bi bi-file-text"></i> Visualizar Documento</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                  ${html}
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        const oldModal = document.getElementById('viewDocModal');
+        if(oldModal) oldModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('viewDocModal'));
+        modal.show();
+        
+        document.getElementById('viewDocModal').addEventListener('hidden.bs.modal', function() {
+          this.remove();
+        });
+      })
+      .catch(error => {
+        console.error('Erro ao visualizar documento:', error);
+        alert('Erro ao carregar documento');
+      });
+  }
+  
+  // Copiar para clipboard
+  function copyToClipboard(button, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const originalHtml = button.innerHTML;
+      button.innerHTML = '<i class="bi bi-check"></i> Copiado!';
+      button.classList.add('btn-success');
+      button.classList.remove('btn-outline-secondary');
+      
+      setTimeout(() => {
+        button.innerHTML = originalHtml;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-secondary');
+      }, 2000);
+    }).catch(err => {
+      console.error('Erro ao copiar:', err);
+      alert('Erro ao copiar texto');
+    });
+  }
+  
+  // Ativar filtro 'Todos' por padrão
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('filter-all').classList.add('active');
+  });
+</script>
+{% endblock %}
