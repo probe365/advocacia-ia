@@ -1,0 +1,67 @@
+flowchart TD
+  %% Beta architecture diagram with extended components
+  subgraph Client
+    U[Browser / HTMX]
+  end
+
+  subgraph WebTier
+    GW[Reverse Proxy / Load Balancer]
+    APP[Flask App\nwsgi:app]
+  end
+
+  subgraph AppLayer[Application Layer]
+    BP[Blueprints\nclientes / processos / documentos / chat / auth / metrics]
+    SRV[Service Layer\nCadastroService]
+    AUTH[Flask-Login / Session]
+    MT[Multi-Tenant Middleware]
+    VAL[Input Validation]
+    LOG[Structured Logging]
+    METR[Metrics Exporter]
+  end
+
+  subgraph AIPipeline[AI & RAG Pipeline]
+    LC[LangChain Orchestrator]
+    EMB[Embedding Model]
+    VDB[(Chroma Vector Store)]
+    RETR[Retriever]
+    LLM[OpenAI API]
+  end
+
+  subgraph Data
+    PG[(PostgreSQL)]
+    TBL[(chat_turns / domain tables)]
+    MIG[alembic/versions]
+    FS[(Embeddings Disk Volume)]
+  end
+
+  subgraph Ops[Operations]
+    CFG[.env / Feature Flags]
+    CTNR[Docker / Compose]
+    MIGT[Alembic CLI]
+  end
+
+  U --> GW --> APP
+  APP --> BP --> SRV --> PG
+  SRV --> TBL
+  MIG -. schema .-> PG
+  MIG -. versioned .-> TBL
+  APP --> AUTH
+  APP --> MT
+  APP --> LOG
+  APP --> METR
+  BP --> LC
+  LC --> EMB --> VDB
+  VDB --> FS
+  LC --> RETR --> LLM
+  LLM --> LC
+  CFG --> APP
+  CTNR --> APP
+  MIGT --> MIG
+  LOG --> FS
+
+  classDef data fill:#eef,stroke:#336;
+  classDef ai fill:#efe,stroke:#363;
+  classDef ops fill:#fee,stroke:#633;
+  class PG,TBL,MIG,FS data
+  class LC,EMB,VDB,RETR,LLM ai
+  class CFG,CTNR,MIGT ops

@@ -1,0 +1,13 @@
+# Development / Testing dependencies
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+
+pytest==8.4.1
+pytest-asyncio==1.1.0
+mypy==1.17.1
+# Optional type stubs
+types-requests==2.32.0.20241016
+# Lint / formatting (optional; uncomment if you adopt them)
+# ruff==0.6.9
+# black==24.8.0
+# isort==5.13.2
+

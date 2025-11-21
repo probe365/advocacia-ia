@@ -1,0 +1,15 @@
+Boa tarde Rafael. Creio que tudo esteja bem com você.
+
+Agradeço a sua atenção e tempo, bem como da Marília e Aline, ontem  durante a apresentação da nossa versão Beta do sistema 'Advocacia e IA". As sugestões e observações feitas por vocês foram extremamente úteis para a implementação de novos recursos e melhorias neste sistema.
+
+Dentre todas as sugestões destaco três que pretendo implementar de pronto neste sistema: (1) permitir a carga de múltiplos processos relacionados a um novo cliente adquirido pelo Escritório; (2) inclusão de novas petições; e (3) possibilitar a inserção de documentos diversos na Base de Conhecimento existente no sistema. Visando esclarecer e reforçar meu entendimento sobre estas sugestões, tomo a liberdade de tomar um pouco mais do seu tempo com as solicitações que seguem:
+
+Item (1) - É possível você me fornecer um breve descritivo sobre as etapas que são cumpridas pelo seu Escritório quando da aquisição de um novo cliente com múltiplos processos? Lembro-me da menção de uma planilha de Excel que é fornecida pelo escritório antigo e os passos adotados internamente por vocês para checagem e validação dos processos nos órgãos jurídicos e junto ao cliente, mas peço o favor de informar resumidamente estas etapas, sem pretender entrar nos sigilos e procedimentos reservados do seu Escritório.
+Item (2) - Quando apresentei a petição inicial contida no nosso sistema, você enumerou 6 tipos diferentes de petições como sendo as principais utilizadas em um processo jurídico de contencioso. Por favor, me envie o nome destas petições novamente.
+
+Quanto ao item (3) das sugestões, espero num futuro que seja conveniente  para vocês trocar uma palavra por telefone com a Aline ou Marília para esclarecer algumas dúvidas que fiquei sobre esta inserção de documentos na Base de Conhecimento. Este item foi bastante comentado por elas ao final da nossa conversa, mas gostaria de esclarecer algumas dúvidas que tenho. Seria uma conversa rápida por telefone.
+
+Desculpe o texto um pouco longo, mas quis aproveitar, enquanto este assunto está 'quente', para voltar a tratar sobre o sistema com você. E, novamente, muitíssimo obrigado por sua ajuda, fato que tem sido uma constante da sua parte na nossa já longa e boa relação de amizade.
+
+Grande abraço,
+Paulo

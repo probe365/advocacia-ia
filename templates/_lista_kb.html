@@ -1,0 +1,59 @@
+<ul class="list-group list-group-flush">
+  {% if kb_files and kb_files|length > 0 %}
+    {% for f in kb_files %}
+      {% set ext = f.split('.')[-1].lower() %}
+      {% if ext == 'pdf' %}
+        {% set icon = 'bi-file-pdf text-danger' %}
+        {% set type = 'pdf' %}
+      {% elif ext == 'txt' %}
+        {% set icon = 'bi-file-text text-info' %}
+        {% set type = 'text' %}
+      {% elif ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+        {% set icon = 'bi-image text-primary' %}
+        {% set type = 'image' %}
+      {% elif ext in ['mp3', 'wav'] %}
+        {% set icon = 'bi-mic text-success' %}
+        {% set type = 'audio' %}
+      {% elif ext in ['mp4', 'mov'] %}
+        {% set icon = 'bi-camera-video text-warning' %}
+        {% set type = 'video' %}
+      {% else %}
+        {% set icon = 'bi-file-earmark text-secondary' %}
+        {% set type = 'other' %}
+      {% endif %}
+      
+      <li class="list-group-item kb-file-item d-flex justify-content-between align-items-center" data-type="{{ type }}">
+        <div class="d-flex align-items-center flex-grow-1">
+          <i class="bi {{ icon }} fs-4 me-3"></i>
+          <div class="flex-grow-1">
+            <strong class="d-block">{{ f }}</strong>
+            <small class="text-muted">
+              <i class="bi bi-clock"></i> Adicionado recentemente
+              <span class="badge bg-{{ type == 'pdf' and 'danger' or (type == 'image' and 'primary' or (type == 'audio' and 'success' or 'warning')) }} ms-2">{{ type.upper() }}</span>
+            </small>
+          </div>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+          <button class="btn btn-outline-info" 
+                  onclick="debugFile('{{ f|urlencode }}')"
+                  title="Debug (verificar indexação)">
+            <i class="bi bi-bug"></i>
+          </button>
+          <button class="btn btn-outline-danger" 
+                  hx-delete="/kb/ui/delete/{{ f|urlencode }}" 
+                  hx-target="#kb-files" 
+                  hx-swap="innerHTML" 
+                  hx-confirm="Tem certeza que deseja remover '{{ f }}' da Base de Conhecimento?">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </li>
+    {% endfor %}
+  {% else %}
+    <li class="list-group-item text-muted text-center py-5">
+      <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+      <p class="mb-0">Nenhum documento na Base de Conhecimento.</p>
+      <small>Adicione documentos usando o formulário ao lado.</small>
+    </li>
+  {% endif %}
+</ul>

@@ -1,0 +1,64 @@
+C4Deployment
+  title Deployment Diagram - AI Legal Platform (Container Orchestration via Docker Compose)
+
+  %% Client Side
+  Deployment_Node(user_dev, "User Device", "Browser / HTMX") {
+    Deployment_Node(browser, "Web Browser", "Chrome / Firefox / Edge") {
+      Container(web_ui, "HTMX Frontend", "HTML/JS", "Dynamic partial updates & form submissions")
+    }
+  }
+
+  %% Public Edge (Optional if using local dev)
+  Deployment_Node(edge, "Reverse Proxy", "Nginx / Traefik", "TLS termination, routing, compression") {
+    Container(reverse_proxy, "Reverse Proxy", "Nginx/Traefik", "TLS, routing, compression, static caching")
+  }
+
+  %% Core Runtime Host (Docker / Compose Network)
+  Deployment_Node(docker_host, "Docker Host", "Linux / Windows WSL2", "Compose Network: app, db, chroma") {
+    Deployment_Node(app_ctr, "app:latest x2", "Python 3.11 + Gunicorn", "Flask API + Blueprints + LangChain orchestration") {
+      Container(api_app, "Flask Application", "Gunicorn wsgi:app", "CRUD, Chat, RAG endpoints, metrics")
+    }
+
+    Deployment_Node(db_ctr, "postgres:16", "PostgreSQL", "Transactional data & chat turns") {
+      ContainerDb(pg_db, "Primary DB", "PostgreSQL", "Clientes, Processos, Documentos, chat_turns")
+    }
+
+    Deployment_Node(chroma_ctr, "chroma:latest", "Chroma Vector Store", "Embeddings & semantic index") {
+      Container(chroma, "Chroma Service", "Python", "Stores vector embeddings for RAG retrieval")
+    }
+
+    Deployment_Node(migrate_job, "alembic-migrate (ephemeral)", "Alembic CLI", "Applies schema migrations at startup") {
+      Container(migrate_task, "Alembic Runner", "Python", "Versioned DDL updates")
+    }
+
+  %% Persistence handled via Docker named volumes (pgdata, chroma_data) - not explicitly modeled as nodes
+  }
+
+  %% External SaaS
+  Deployment_Node(openai_edge, "OpenAI API", "Managed SaaS", "LLM / Embedding inference") {
+    Container_Ext(openai_api, "OpenAI", "HTTPS", "ChatCompletion / Embeddings endpoints")
+  }
+
+  %% Relationships
+  Rel(web_ui, reverse_proxy, "HTTP(S) requests", "HTTPS")
+  Rel(reverse_proxy, api_app, "Routes / forwards", "HTTP")
+  Rel(web_ui, api_app, "(Dev) Direct calls", "HTTP")
+  Rel(api_app, pg_db, "SQL queries", "psycopg2 / TCP 5432")
+  Rel(api_app, chroma, "Vector similarity / CRUD", "HTTP / gRPC")
+  Rel(api_app, openai_api, "LLM & Embedding calls", "HTTPS")
+  Rel(migrate_task, pg_db, "Apply migrations", "SQL DDL")
+  %% Persistence: pg_db -> pgdata volume; chroma -> chroma_data volume (implicit)
+
+  %% Optional scaling / notes
+  UpdateElementStyle(app_ctr, $bgColor="#E6F4FF")
+  UpdateElementStyle(chroma_ctr, $bgColor="#E8FBE8")
+  UpdateElementStyle(db_ctr, $bgColor="#F5E6FF")
+  UpdateElementStyle(openai_api, $bgColor="#FFF4E5")
+
+  UpdateRelStyle(reverse_proxy, api_app, $offsetY="-20")
+  UpdateRelStyle(api_app, chroma, $offsetY="-30")
+  UpdateRelStyle(api_app, openai_api, $offsetY="40")
+  UpdateRelStyle(api_app, pg_db, $offsetX="-30", $offsetY="-15")
+  %% No explicit volume relationship styles needed
+
+  UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="2")

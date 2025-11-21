@@ -1,0 +1,134 @@
+{# templates/_ementas_faiss_widget.html #}
+<div class="card bg-dark text-light border-secondary mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <strong>Pesquisa de Ementas por Similaridade (FAISS)</strong>
+      <small class="text-muted ms-2">
+        Índice: {{ index_path or 'data/store/ementas_faiss/index.faiss' }}
+      </small>
+    </div>
+    <button id="btn-faiss-clear" class="btn btn-outline-secondary btn-sm">Limpar</button>
+  </div>
+
+  <div class="card-body">
+    <form id="faiss-form" onsubmit="return false;">
+      <div class="mb-3">
+        <label class="form-label">Digite/cole sua base textual</label>
+        <textarea id="faiss-query" class="form-control bg-secondary text-light" rows="4"
+          placeholder="Ex.: ação de indenização por danos morais em contrato bancário"></textarea>
+      </div>
+
+      <div class="d-flex gap-3 align-items-end mb-3">
+        <div style="max-width: 120px;">
+          <label class="form-label">Top-K</label>
+          <input id="faiss-topk" type="number" min="1" max="50" class="form-control bg-secondary text-light" value="10">
+        </div>
+        <button id="btn-faiss-search" class="btn btn-primary">Buscar</button>
+        <span id="faiss-status" class="ms-2 small text-info"></span>
+      </div>
+    </form>
+
+    <div id="faiss-alert" class="alert d-none" role="alert"></div>
+
+    <div class="table-responsive">
+      <table class="table table-dark table-hover table-sm align-middle">
+        <thead class="table-secondary text-dark">
+          <tr>
+            <th style="width:5%">#</th>
+            <th style="width:20%">Título</th>
+            <th>Ementa (trecho)</th>
+            <th style="width:12%">Score</th>
+            <th style="width:18%">Meta</th>
+          </tr>
+        </thead>
+        <tbody id="faiss-results-body">
+          <tr class="text-muted">
+            <td colspan="5">Nenhum resultado ainda. Faça uma busca acima.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const qEl   = document.getElementById('faiss-query');
+  const kEl   = document.getElementById('faiss-topk');
+  const btn   = document.getElementById('btn-faiss-search');
+  const clr   = document.getElementById('btn-faiss-clear');
+  const stat  = document.getElementById('faiss-status');
+  const alert = document.getElementById('faiss-alert');
+  const tbody = document.getElementById('faiss-results-body');
+
+  function setAlert(kind, msg) {
+    alert.className = 'alert alert-' + kind;
+    alert.textContent = msg;
+    alert.classList.remove('d-none');
+  }
+  function clearAlert() {
+    alert.classList.add('d-none');
+  }
+  function setLoading(on) {
+    btn.disabled = on;
+    stat.textContent = on ? 'Buscando…' : '';
+  }
+  function renderRows(rows) {
+    tbody.innerHTML = '';
+    if (!rows || !rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Nenhum resultado.</td></tr>';
+      return;
+    }
+    for (const r of rows) {
+      const meta = [r.orgao, r.grupo, r.data_decisao].filter(Boolean).join(' · ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.rank}</td>
+        <td>${escapeHtml(r.title || '')}</td>
+        <td>${escapeHtml(r.ementa || '')}</td>
+        <td>${r.score}</td>
+        <td class="text-muted small">${escapeHtml(meta)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]
+    ));
+  }
+
+  async function doSearch() {
+    clearAlert();
+    const query = (qEl.value || '').trim();
+    const top_k = parseInt(kEl.value || '10', 10);
+    if (!query) {
+      setAlert('warning', 'Digite um texto para pesquisar.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const resp = await fetch('/ementas/faiss/search', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ query, top_k })
+      });
+      const data = await resp.json();
+      if (!data.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+      renderRows(data.results || []);
+    } catch (err) {
+      console.error(err);
+      setAlert('danger', 'Erro ao buscar: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  btn.addEventListener('click', doSearch);
+  clr.addEventListener('click', () => {
+    qEl.value = '';
+    tbody.innerHTML = '<tr class="text-muted"><td colspan="5">Nenhum resultado ainda. Faça uma busca acima.</td></tr>';
+    clearAlert();
+  });
+})();
+</script>

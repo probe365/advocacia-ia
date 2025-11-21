@@ -1,0 +1,29 @@
+sequenceDiagram
+  title Chat Request with RAG Retrieval
+  autonumber
+  participant U as User Browser (HTMX)
+  participant F as Flask App
+  participant SVC as Service Layer
+  participant V as Chroma Vector Store
+  participant OAI as OpenAI API
+  participant DB as PostgreSQL
+
+  U->>F: POST /chat (prompt)
+  activate F
+  F->>SVC: validate & route
+  activate SVC
+  SVC->>DB: INSERT chat_turn (user message)
+  DB-->>SVC: ack
+  SVC->>V: similarity search (k vectors)
+  V-->>SVC: top-k docs
+  SVC->>OAI: prompt + retrieved context
+  OAI-->>SVC: model completion
+  SVC->>DB: INSERT chat_turn (assistant reply)
+  DB-->>SVC: ack
+  SVC-->>F: response payload (HTML fragment)
+  deactivate SVC
+  F-->>U: HTMX swap (updated chat window)
+  deactivate F
+
+  Note over SVC,V: Embeddings precomputed during ingestion
+  Note over F,SVC: Multi-tenant ID added to queries if enabled

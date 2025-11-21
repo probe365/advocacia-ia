@@ -1,0 +1,57 @@
+EMENTAS FAISS - EXPORTAÇÃO COMPLETA
+Data: 26/10/2025 02:36:17
+Consulta: O caso diz respeito a empréstimo consignado celebrado com assinatura falsificada, fraude confirmada por perícia e que levou à nulidade do contrato. Em 1º grau, determinou-se devolução em dobro e fixaram-se danos morais de R$ 5.000,00. Em apelação (TJSP, Apelação Cível 1000933-03.2022.8.26.0222, julgado em 10/06/2025), manteve-se a nulidade, mas a restituição foi limitada à forma simples por ausência de má-fé, autorizou-se a compensação com valores de contrato anterior e fixaram-se juros e correção desde o evento danoso (ilícito extracontratual); os danos morais foram afastados por configurarem mero aborrecimento. A ação permaneceu parcialmente procedente; recurso do banco parcialmente provido e da autora prejudicado quanto à majoração dos danos morais e desprovido quanto à devolução em dobro. O caso tem sido citado em debates públicos como exemplo de problemas atribuídos a supostas ações indevidas de sindicatos ligados ao PT, alegação não comprovada nos autos. Houve também determinação para verificar nas cláusulas contratuais eventual menção a Alexandre de Moraes, sem informação, nos resumos, sobre o resultado dessa análise. Registra-se, por fim, que houve dificuldade técnica para leitura de um arquivo enviado, tendo sido solicitada versão legível para complementação.
+Total de resultados: 5
+
+================================================================================
+
+[01] AgInt no AREsp
+ID: 000888999
+Fonte: csv, QUARTA TURMA, QuartaTurma, 20241021
+Similaridade: 0.7726
+Conteúdo:
+----------------------------------------
+AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL. PROCESSUAL CIVIL. AÇÃO DE INDENIZAÇÃO. EMPRÉSTIMO BANCÁRIO. FRAUDE. TRIBUNAL A QUO RECONHECEU A OCORRÊNCIA DE DANOS MORAIS. VALOR RAZOÁVEL E PROPORCIONAL. SÚMULA 7/STJ. AGRAVO DESPROVIDO. 1. No caso, o Tribunal de Justiça, com arrimo no acervo fático-probatório carreado aos autos, concluiu que, "(...) na hipótese em que não há a comprovação da contratação válida e regular, o negócio é considerado juridicamente inexistente, gerando, assim, o direito do consumidor em repetição de indébito e danos morais", fixando a respectiva indenização em R$ 5.000,00 (cinco mil reais). A pretensão de alterar tal entendimento, considerando as circunstâncias do caso concreto, demandaria revolvimento de matéria fático-probatória, atraindo a incidência da Súmula 7/STJ. 2. Agravo interno a que se nega provimento. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em sessão virtual de 15/10/2024 a 21/10/2024, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros João Otávio de Noronha, Maria Isabel Gallotti, Antonio Carlos Ferreira e Marco Buzzi votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro João Otávio de Noronha.
+
+================================================================================
+
+[02] AgInt no REsp
+ID: 000814243
+Fonte: csv, QUARTA TURMA, QuartaTurma, 20220509
+Similaridade: 0.7638
+Conteúdo:
+----------------------------------------
+CIVIL. CONTRATOS. AGRAVO INTERNO NO RECURSO ESPECIAL. PLANO DE SAÚDE COLETIVO. RESCISÃO UNILATERAL IMOTIVADA. LEGALIDADE EM TESE. BENEFICIÁRIA EM TRATAMENTO DE SAÚDE. DANOS MORAIS. EXISTÊNCIA. REEXAME DE FATOS E PROVAS. IMPOSSIBILIDADE. SÚMULA N. 7/STJ. DECISÃO MANTIDA. 1. "O plano de saúde coletivo pode ser rescindido ou suspenso imotivadamente (independentemente da existência de fraude ou inadimplência), após a vigência do período de doze meses e mediante prévia notificação do usuário com antecedência mínima de sessenta dias (artigo 17 da Resolução Normativa ANS 195/2009). Nada obstante, no caso de usuário em estado de saúde grave, independentemente do regime de contratação do plano de saúde (coletivo ou individual), deve-se aguardar a conclusão do tratamento médico garantidor da sobrevivência e/ou incolumidade física para se pôr fim à avença" (AgInt no AREsp 1.433.637/SP, Relator Ministro LUIS FELIPE SALOMÃO, QUARTA TURMA, julgado em 16/5/2019, DJe 23/5/2019). 2. No caso, o Tribunal a quo reconheceu que a rescisão era indevida, por estar a parte beneficiária em tratamento de doença grave, além de ter havido danos morais a serem indenizados em decorrência da negativa de atendimento. Nesse contexto, em sede de recurso especial, não há como reexaminar fatos e provas para alterar o entendimento da Corte de origem, ante o óbice da Súmula n. 7/STJ. 3. Agravo interno a que se nega provimento. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em sessão virtual de 03/05/2022 a 09/05/2022, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Luis Felipe Salomão, Raul Araújo, Maria Isabel Gallotti e Marco Buzzi votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro Luis Felipe Salomão.
+
+================================================================================
+
+[03] AgInt no AREsp
+ID: 000813261
+Fonte: csv, SEGUNDA TURMA, SegundaTurma, 20220502
+Similaridade: 0.7625
+Conteúdo:
+----------------------------------------
+PROCESSUAL CIVIL. AÇÃO ANULATÓRIA DE COBRANÇA COM PEDIDO DE TUTELA ANTECIPADA. INDÍCIO DE PROCEDIMENTO IRREGULAR. FRAUDE NA AFERIÇÃO DO CONSUMO DE ENERGIA ELÉTRICA. INOBSERVÂNCIA DOS PROCEDIMENTOS PREVISTOS NO ART. 129 DA RESOLUÇÃO NORMATIVA N. 414/2010 DA ANEEL. AUSÊNCIA DO COMPROVANTE DE PAGAMENTO DO PREPARO. IRREGULARIDADE. INTIMAÇÃO PARA RECOLHER EM DOBRO. RECOLHIMENTO SIMPLES. INCIDÊNCIA DA SÚMULA N. 187/STJ. DESERÇÃO. PRECEDENTES DO STJ. DESPROVIMENTO DO AGRAVO INTERNO. MANUTENÇÃO DA DECISÃO RECORRIDA. I - Na origem, trata-se de ação objetivando declaração de nulidade do processo administrativo e multa, invalidando o acordo celebrado, acrescido de indenização por danos morais. O Juízo de 1ª instância julgou improcedente o pedido. No Tribunal a quo, a sentença foi parcialmente procedente. II - Mediante análise do recurso de Celg Distribuição S.A. ? Celg D, o recurso especial não foi instruído com a guia de custas devidas ao STJ e o respectivo comprovante de pagamento. III - Ademais, foi percebido, no Tribunal de origem, haver irregularidade no recolhimento do preparo, razão pela qual houve a intimação da parte recorrente, com fundamento no art. 1.007, § 4º, do Código de Processo Civil, para realizar, no prazo de 5 dias, o recolhimento em dobro do preparo, sob pena de não conhecimento do recurso. IV - Embora regularmente intimada para efetuar o recolhimento em dobro, a parte o fez de forma simples, não regularizando o preparo de forma adequada, em descumprimento ao disposto no art. 1.007, § 4º, do Código de Processo Civil. Assim, incide na espécie o disposto na Súmula n. 187 deste Tribunal, o que leva à deserção do recurso. A propósito: AgInt no AREsp n. 1.946.252/ES, relator Ministro Mauro Campbell Marques, Segunda Turma, julgado em 14/2/2022, DJe 17/2/2022. V - Agravo interno improvido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da SEGUNDA TURMA do Superior Tribunal de Justiça, em sessão virtual de 26/04/2022 a 02/05/2022, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Herman Benjamin, Og Fernandes, Mauro Campbell Marques e Assusete Magalhães votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro Mauro Campbell Marques.
+
+================================================================================
+
+[04] AgInt no AREsp
+ID: 000826632
+Fonte: csv, QUARTA TURMA, QuartaTurma, 20220919
+Similaridade: 0.7620
+Conteúdo:
+----------------------------------------
+DIREITO CIVIL. AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL. SÚMULA 182/STJ. NÃO INCIDÊNCIA. RECONSIDERAÇÃO DA DECISÃO DA PRESIDÊNCIA. DANOS MORAIS. VALOR ADEQUADO. REVISÃO. IMPOSSIBILIDADE. AGRAVO INTERNO PROVIDO. RECURSO ESPECIAL DESPROVIDO. 1. A Corte de origem concluiu que, em razão da prática de fraude de terceiro e consequente inscrição do nome do consumidor nos órgão de proteção ao crédito, esse faz jus à indenização a título de danos morais. 2. O valor arbitrado pelas instâncias ordinárias a título de danos morais somente pode ser revisado em sede de recurso especial quando irrisório ou exorbitante. No caso, o montante fixado em R$ 6.000,00 (seis mil reais) não se mostra exorbitante nem desproporcional aos danos suportados pela parte autora. 3. Agravo interno provido para conhecer do agravo e negar provimento ao recurso especial. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em sessão virtual de 13/09/2022 a 19/09/2022, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Maria Isabel Gallotti, Antonio Carlos Ferreira e Marco Buzzi votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro Raul Araújo.
+
+================================================================================
+
+[05] AgInt na TutAntAnt
+ID: 000906394
+Fonte: csv, QUARTA TURMA, QuartaTurma, 20250324
+Similaridade: 0.7619
+Conteúdo:
+----------------------------------------
+PROCESSUAL CIVIL. AGRAVO INTERNO NO PEDIDO DE TUTELA ANTECIPADA ANTECEDENTE. RECURSO ESPECIAL. EFEITO SUSPENSIVO. CONCESSÃO. NECESSIDADE. TEMA N. 1.296. CORTE ESPECIAL. SUSPENSÃO. DEVOLUÇÃO DOS AUTOS. OBRIGATORIEDADE. OBSERVÂNCIA DOS ARTIGOS 1.040 E 1.041 DO CPC. DECISÃO MANTIDA. 1. O deferimento de efeito suspensivo ao recurso especial pressupõe a demonstração de elementos que evidenciem a probabilidade do direito alegado e o perigo de dano ou o risco ao resultado útil do processo. 2. No caso concreto, verificada a presença do fumus boni iuris e do periculum in mora, o pedido liminar foi deferido, para conceder efeito suspensivo ao recurso especial, "de modo que a exigibilidade da multa seja afastada até o exaurimento da discussão do mérito recursal" (e-STJ fl. . 4. Porém, a Corte Especial do STJ afetou a questão controvertida para julgamento sob o rito dos recursos repetitivos (Tema n. 1.296), com ordem de suspensão perante o Tribunal de origem, até a publicação do acórdão paradigma, nos termos do art. 256-L, I, do RISTJ. Dessa forma, no REsp n. 2.191.409/SP, vinculado à essa tutela antecedente, foi determinada a devolução dos autos, em razão da observância da sistemática prevista nos arts. 1.040 e 1.041 do CPC/2015 (decisão publicada no DJe de 25/2/2025), ficando prejudicado o agravo interno. 3. Agravo interno julgado prejudicado. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em Sessão Virtual de 18/03/2025 a 24/03/2025, por unanimidade, julgar prejudicado o recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros João Otávio de Noronha, Raul Araújo, Maria Isabel Gallotti e Marco Buzzi votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro João Otávio de Noronha.
+
+================================================================================
+

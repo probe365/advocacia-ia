@@ -1,0 +1,36 @@
+sequenceDiagram
+  title Document Ingestion & Embedding Flow
+  autonumber
+  participant U as User Browser (HTMX)
+  participant F as Flask App
+  participant ING as Ingestion Service
+  participant TXT as Text Extractor
+  participant EMB as Embedding Model (OpenAI)
+  participant V as Chroma Vector Store
+  participant DB as PostgreSQL
+
+  U->>F: POST /documentos/upload (file)
+  activate F
+  F->>ING: initiate ingestion(job_id, tenant)
+  activate ING
+  ING->>TXT: extract_text(file)
+  TXT-->>ING: raw text
+  ING->>DB: INSERT document metadata (filename, size, tenant)
+  DB-->>ING: id
+  loop Chunking
+    ING->>ING: split text into chunks
+  end
+  ING->>EMB: embed(batch of chunks)
+  EMB-->>ING: vectors[]
+  ING->>V: upsert(chunks, vectors, metadata)
+  V-->>ING: ack
+  ING->>DB: UPDATE document status = 'indexed'
+  DB-->>ING: ack
+  ING-->>F: ingestion result (doc_id)
+  deactivate ING
+  F-->>U: Upload success + indexed flag
+  deactivate F
+
+  Note over ING,TXT: Supports PDFs / text assuming local parsers
+  Note over ING,V: Metadata includes tenant_id & process reference
+  Note over ING,EMB: OpenAI API key required

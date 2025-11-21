@@ -1,0 +1,53 @@
+{% if results %}
+  <style>
+    .btn-xs {
+      padding: 0.15rem 0.4rem;
+      font-size: 0.75rem;
+      line-height: 1.2;
+    }
+  </style>
+  
+  <div class="alert alert-success mt-3">
+    <strong><i class="bi bi-check-circle"></i> {{ results|length }} resultado(s) encontrado(s)</strong>
+  </div>
+  
+  {% for result in results %}
+    <div class="card mb-2">
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="flex-grow-1">
+            <small class="text-muted">
+              <i class="bi bi-file-earmark"></i> 
+              <strong>{{ result.filename }}</strong>
+            </small>
+          </div>
+          <span class="badge bg-success">Score: {{ "%.2f"|format(result.score) }}</span>
+        </div>
+        <p class="mb-2 small text-break" style="white-space: pre-wrap;">{{ result.text[:300] }}{% if result.text|length > 300 %}...{% endif %}</p>
+        <div class="d-flex gap-2">
+          <button class="btn btn-xs btn-outline-primary" 
+                  onclick="viewFullDocument('{{ result.filename|urlencode }}')"
+                  title="Ver documento completo">
+            <i class="bi bi-file-text"></i> Ver Completo
+          </button>
+          <button class="btn btn-xs btn-outline-secondary" 
+                  data-text="{{ result.text|escape }}"
+                  onclick="copyToClipboard(this, this.dataset.text)"
+                  title="Copiar trecho">
+            <i class="bi bi-clipboard"></i> Copiar
+          </button>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  
+  <button class="btn btn-sm btn-outline-secondary w-100 mt-2" 
+          hx-get="/kb/ui/clear-search" 
+          hx-target="#kb-search-results">
+    <i class="bi bi-x-circle"></i> Limpar Busca
+  </button>
+{% elif query %}
+  <div class="alert alert-warning mt-3">
+    <i class="bi bi-exclamation-triangle"></i> Nenhum resultado encontrado para: <strong>"{{ query }}"</strong>
+  </div>
+{% endif %}

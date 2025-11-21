@@ -1,0 +1,54 @@
+Parte Adversa ==> Cadastro à parte ==> no Processo deve permitir buscar PA existente no cadastro.
+
+Nome
+Nacionalidade
+Profissão
+Estado civil
+CEP - (busca)
+Estado
+Cidade
+Bairro
+CPF
+RG
+Email
+Telefone
+Nome da mãe
+
+
+Clientes:
+Tipo: Física / Jurídica
+Nome
+Profissão
+Estado Civil
+CEP - (busca)
+Cidade
+Estado
+CPF
+RG
+Email
+Telefone
+Nome da Mãe
+==> Movimentações do cliente
+==> Agendamento do cliente
+
+
+Processo: (se novo Processo com cliente existente, pesquisa Clientes)
+Número Processo
+Número CNJ
+Local de trâmite
+Status processual
+Comarca
+Área de atuação
+Fase
+Objeto da ação
+Responsável
+Assunto
+Localizador
+Valor da causa
+Encerramento
+Sentença
+Distribuição
+Execução
+Segredo de justiça - sim / não
+==> Movimentações do processo
+==> Lançamento automático na Ficha do Processo toda vez que houver uma movimentação.

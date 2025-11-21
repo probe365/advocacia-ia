@@ -1,0 +1,168 @@
+{# templates/_faiss_cards.html #}
+{% if warn %}
+  <div class="alert alert-warning py-2 px-3 mb-2 small">{{ warn }}</div>
+{% endif %}
+
+{% if not items or items|length == 0 %}
+  <div class="text-muted small">(Nenhum resultado ainda)</div>
+{% else %}
+  <div class="d-flex flex-column gap-2">
+    {% for r in items %}
+      <div class="card card-body bg-secondary text-light border-0 shadow-sm py-2 px-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="me-3">
+            <div class="fw-semibold">{{ r.titulo }}</div>
+            <div class="text-muted small">
+              id={{ r.id }}
+              {% if r.fonte %} • {{ r.fonte }}{% endif %}
+            </div>
+          </div>
+          <span class="badge bg-dark align-self-start small">
+            sim {{ '%.3f'|format(r.score) }}
+          </span>
+        </div>
+
+        <div class="mt-2 small resumo-texto"
+             style="white-space:pre-wrap; max-height:12rem; overflow:hidden; line-height:1.4; font-size:0.85rem; 
+                    position:relative; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 80%, rgba(108, 117, 125, 0.1) 100%);">
+          {{ r.excerto }}
+        </div>
+
+        <div class="mt-2 d-flex flex-wrap gap-2">
+          <button type="button"
+                  class="btn btn-sm btn-outline-primary btn-copy-full"
+                  data-full='{{ r.texto_full|default(r.excerto)|tojson }}'>
+            📋 Copiar
+          </button>
+          <button type="button"
+                  class="btn btn-sm btn-outline-success btn-export-txt"
+                  data-texto='{{ r.texto_full|default(r.excerto)|tojson }}'
+                  data-titulo='{{ r.titulo|tojson }}'
+                  data-fonte='{{ r.fonte|default("")|tojson }}'
+                  data-score='{{ r.score|default(0.0) }}'>
+            💾 Baixar TXT
+          </button>
+          <button type="button"
+                  class="btn btn-sm btn-outline-secondary btn-toggle-expand"
+                  data-full='{{ r.texto_full|default(r.excerto)|tojson }}'>
+            🔽 Ver mais
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+(function(){
+  if (window.__faissCardHandlersBound) return;
+  window.__faissCardHandlersBound = true;
+
+  // --- Copiar ---
+  async function copyText(txt, btn){
+    try {
+      await navigator.clipboard.writeText(txt);
+      const original = btn.textContent;
+      btn.textContent = "✅ Copiado!";
+      btn.classList.remove("btn-outline-primary");
+      btn.classList.add("btn-success");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("btn-success");
+        btn.classList.add("btn-outline-primary");
+      }, 1200);
+    } catch (e) {
+      alert("Não foi possível copiar o texto.");
+    }
+  }
+
+  // --- Expandir / recolher ---
+  function toggleExpand(btn){
+    const card = btn.closest(".card");
+    const resumoDiv = card.querySelector(".resumo-texto");
+    if (!resumoDiv) return;
+    const fullText = JSON.parse(btn.dataset.full || '""');
+    const expanded = btn.dataset.expanded === "true";
+
+    if (!expanded) {
+      resumoDiv.textContent = fullText;
+      resumoDiv.style.maxHeight = "none";
+      resumoDiv.style.overflow = "visible";
+      btn.textContent = "🔼 Ver menos";
+      btn.dataset.expanded = "true";
+    } else {
+      resumoDiv.textContent = fullText.slice(0, 1200) + (fullText.length > 1200 ? "…" : "");
+      resumoDiv.style.maxHeight = "12rem";
+      resumoDiv.style.overflow = "hidden";
+      btn.textContent = "🔽 Ver mais";
+      btn.dataset.expanded = "false";
+    }
+  }
+
+  // --- Delegação de eventos ---
+  document.addEventListener("click", (ev) => {
+    const btnCopy = ev.target.closest(".btn-copy-full");
+    if (btnCopy) {
+      try {
+        const txt = JSON.parse(btnCopy.dataset.full || '""');
+        copyText(txt, btnCopy);
+      } catch(_){}
+      return;
+    }
+
+    const btnExport = ev.target.closest(".btn-export-txt");
+    if (btnExport) {
+      try {
+        const texto = JSON.parse(btnExport.dataset.texto || '""');
+        const titulo = JSON.parse(btnExport.dataset.titulo || '"ementa"');
+        const fonte = JSON.parse(btnExport.dataset.fonte || '""');
+        const score = btnExport.dataset.score || '0.0';
+        
+        // Create form for download
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/ementas/faiss/ui/export_txt';
+        form.style.display = 'none';
+        
+        const inputs = {
+          texto: texto,
+          titulo: titulo,
+          fonte: fonte,
+          score: score
+        };
+        
+        Object.entries(inputs).forEach(([name, value]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        
+        // Visual feedback
+        const original = btnExport.innerHTML;
+        btnExport.innerHTML = '💾 Baixando...';
+        btnExport.disabled = true;
+        setTimeout(() => {
+          btnExport.innerHTML = original;
+          btnExport.disabled = false;
+        }, 2000);
+        
+      } catch(e) {
+        alert('Erro ao exportar: ' + e.message);
+      }
+      return;
+    }
+
+    const btnToggle = ev.target.closest(".btn-toggle-expand");
+    if (btnToggle) {
+      toggleExpand(btnToggle);
+      return;
+    }
+  });
+})();
+</script>

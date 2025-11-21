@@ -1,0 +1,54 @@
+<h5 class="mb-3">Adicionar Novo Documento</h5>
+
+<form id="upload-form"
+  hx-post="/processos/ui/{{ id_processo }}/documentos/novo"
+  hx-encoding="multipart/form-data"
+  hx-target="#lista-documentos"
+  hx-swap="innerHTML"
+  hx-indicator="#upload-progress-wrapper"
+>
+  <div class="mb-3">
+  <label for="file" class="form-label">Selecione um arquivo (PDF, TXT, Imagem, Áudio, Vídeo)</label>
+  <input class="form-control" type="file" id="file" name="file" accept=".pdf,.txt,image/*,audio/*,video/*" required>
+  </div>
+  
+  <div class="progress mt-3" id="upload-progress-wrapper" style="height:6px; display:none;">
+    <div class="progress-bar progress-bar-striped progress-bar-animated" id="upload-progress-bar" role="progressbar" style="width:0%"></div>
+  </div>
+  <hr>
+  <div class="d-flex justify-content-end">
+    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+    <button type="submit" class="btn btn-primary" id="upload-submit-btn">Enviar</button>
+  </div>
+</form>
+
+<script>
+(function(){
+  const form = document.getElementById('upload-form');
+  if(!form) return;
+  const wrapper = document.getElementById('upload-progress-wrapper');
+  const bar = document.getElementById('upload-progress-bar');
+  const submitBtn = document.getElementById('upload-submit-btn');
+
+  form.addEventListener('htmx:xhr:progress', function(evt){
+    if(evt.detail.lengthComputable){
+      const pct = Math.round((evt.detail.loaded/evt.detail.total)*100);
+      if(wrapper.style.display==='none') wrapper.style.display='block';
+      bar.style.width = pct + '%';
+      bar.setAttribute('aria-valuenow', pct);
+    }
+  });
+  form.addEventListener('htmx:beforeRequest', function(){
+    if(wrapper) {wrapper.style.display='block'; bar.style.width='0%';}
+    if(submitBtn) submitBtn.disabled = true;
+  });
+  form.addEventListener('htmx:afterRequest', function(){
+    setTimeout(()=>{ if(wrapper) wrapper.style.display='none'; }, 600);
+    if(submitBtn) submitBtn.disabled = false;
+  });
+  form.addEventListener('htmx:responseError', function(){
+    bar.classList.add('bg-danger');
+    if(submitBtn) submitBtn.disabled = false;
+  });
+})();
+</script>

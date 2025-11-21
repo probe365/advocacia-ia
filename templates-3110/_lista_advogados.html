@@ -1,0 +1,26 @@
+<ul class="list-group list-group-flush small">
+  {% for a in advogados %}
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div>
+        <strong>{{ a.nome }}</strong><br>
+        <span class="text-muted">OAB: {{ a.oab }}</span><br>
+        <span>{{ a.email }}</span>
+        {% if a.area_atuacao %}<div class="badge bg-info text-dark mt-1">{{ a.area_atuacao }}</div>{% endif %}
+      </div>
+      <div class="btn-group btn-group-sm">
+  <button class="btn btn-outline-secondary" title="Editar"
+    hx-get="/escritorio/ui/advogados/{{ a.oab }}/editar"
+    hx-target="#advogado-form-wrapper"
+    hx-swap="innerHTML">✎</button>
+  <button class="btn btn-outline-danger"
+    hx-delete="/escritorio/ui/advogados/{{ a.oab }}/delete"
+    hx-target="#lista-advogados"
+    hx-swap="outerHTML"
+    hx-confirm="Remover advogado?">✕</button>
+      </div>
+    </li>
+  {% else %}
+    <li class="list-group-item text-muted text-center">Nenhum advogado cadastrado.</li>
+  {% endfor %}
+</ul>
+<!-- Form container referenced for editing -->

@@ -1,0 +1,28 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Pastas grandes
+data/
+models/
+cases/
+faiss/
+embeddings/
+index/
+checkpoints/
+
+# Arquivos grandes
+*.faiss
+*.npy
+*.pkl
+*.pt
+*.csv
+*.jsonl
+*.bin
+*.dll
+
+# Config
+*.env
+.env
+.env.local
