@@ -15,8 +15,24 @@ class CadastroService:
     def create_cliente(self, dados: Dict) -> str:
         return self.manager.save_cliente(dados)
 
+    
+    
     def update_cliente(self, id_cliente: str, dados: Dict) -> str:
-        return self.manager.save_cliente(dados, id_cliente=id_cliente)
+        """
+        Atualiza um cliente existente garantindo que:
+        - o cliente pertença ao tenant atual (via manager)
+        - campos não enviados sejam preservados
+        """
+        atual = self.manager.get_cliente_by_id(id_cliente)
+        if not atual:
+            raise ValueError(f"Cliente {id_cliente} não encontrado para este tenant")
+
+        # Faz merge dos dados novos em cima do registro atual
+        merged = {**atual, **dados}
+
+        return self.manager.save_cliente(merged, id_cliente=id_cliente)
+
+
 
     def delete_cliente(self, id_cliente: str) -> bool:
         return self.manager.delete_cliente(id_cliente)
