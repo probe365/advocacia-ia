@@ -108,29 +108,125 @@ class CadastroManager:
 
     def save_cliente(self, dados: Dict[str, Any], id_cliente: Optional[str] = None) -> str:
         if id_cliente:
+            # UPDATE
             cliente_atual = self.get_cliente_by_id(id_cliente)
-            if not cliente_atual: raise ValueError(f"Cliente com ID {id_cliente} não encontrado.")
+            if not cliente_atual:
+                raise ValueError(f"Cliente com ID {id_cliente} não encontrado.")
+
             dados_completos = {**cliente_atual, **dados}
+
             if self.multi_tenant:
-                query = "UPDATE clientes SET tipo_pessoa=%s, nome_completo=%s, cpf_cnpj=%s, rg_ie=%s, nacionalidade=%s, estado_civil=%s, profissao=%s, endereco_completo=%s, telefone=%s, email=%s, responsavel_pj=%s, observacoes=%s WHERE id_cliente=%s AND tenant_id=%s"
-                params = (dados_completos.get("tipo_pessoa"), dados_completos.get("nome_completo"), dados_completos.get("cpf_cnpj"), dados_completos.get("rg_ie"), dados_completos.get("nacionalidade"), dados_completos.get("estado_civil"), dados_completos.get("profissao"), dados_completos.get("endereco_completo"), dados_completos.get("telefone"), dados_completos.get("email"), dados_completos.get("responsavel_pj"), dados_completos.get("observacoes"), id_cliente, self.tenant_id)
+                query = """
+                    UPDATE clientes SET 
+                        tipo_pessoa=%s, nome_completo=%s, cpf_cnpj=%s, rg_ie=%s,
+                        nacionalidade=%s, estado_civil=%s, profissao=%s, 
+                        endereco_completo=%s, telefone=%s, email=%s, 
+                        responsavel_pj=%s, observacoes=%s
+                    WHERE id_cliente=%s AND tenant_id=%s
+                """
+                params = (
+                    dados_completos.get("tipo_pessoa"),
+                    dados_completos.get("nome_completo"),
+                    dados_completos.get("cpf_cnpj"),
+                    dados_completos.get("rg_ie"),
+                    dados_completos.get("nacionalidade"),
+                    dados_completos.get("estado_civil"),
+                    dados_completos.get("profissao"),
+                    dados_completos.get("endereco_completo"),
+                    dados_completos.get("telefone"),
+                    dados_completos.get("email"),
+                    dados_completos.get("responsavel_pj"),
+                    dados_completos.get("observacoes"),
+                    id_cliente,
+                    self.tenant_id,
+                )
             else:
-                query = "UPDATE clientes SET tipo_pessoa=%s, nome_completo=%s, cpf_cnpj=%s, rg_ie=%s, nacionalidade=%s, estado_civil=%s, profissao=%s, endereco_completo=%s, telefone=%s, email=%s, responsavel_pj=%s, observacoes=%s WHERE id_cliente=%s"
-                params = (dados_completos.get("tipo_pessoa"), dados_completos.get("nome_completo"), dados_completos.get("cpf_cnpj"), dados_completos.get("rg_ie"), dados_completos.get("nacionalidade"), dados_completos.get("estado_civil"), dados_completos.get("profissao"), dados_completos.get("endereco_completo"), dados_completos.get("telefone"), dados_completos.get("email"), dados_completos.get("responsavel_pj"), dados_completos.get("observacoes"), id_cliente)
-        
+                query = """
+                    UPDATE clientes SET 
+                        tipo_pessoa=%s, nome_completo=%s, cpf_cnpj=%s, rg_ie=%s,
+                        nacionalidade=%s, estado_civil=%s, profissao=%s, 
+                        endereco_completo=%s, telefone=%s, email=%s, 
+                        responsavel_pj=%s, observacoes=%s
+                    WHERE id_cliente=%s
+                """
+                params = (
+                    dados_completos.get("tipo_pessoa"),
+                    dados_completos.get("nome_completo"),
+                    dados_completos.get("cpf_cnpj"),
+                    dados_completos.get("rg_ie"),
+                    dados_completos.get("nacionalidade"),
+                    dados_completos.get("estado_civil"),
+                    dados_completos.get("profissao"),
+                    dados_completos.get("endereco_completo"),
+                    dados_completos.get("telefone"),
+                    dados_completos.get("email"),
+                    dados_completos.get("responsavel_pj"),
+                    dados_completos.get("observacoes"),
+                    id_cliente,
+                )
+
+            # 👈 AQUI estava faltando
+            self._execute_query(query, params)
 
         else:
-            # Let PostgreSQL SERIAL auto-generate the ID
+            # INSERT - permanece como já estava
             if self.multi_tenant:
-                query = "INSERT INTO clientes (tipo_pessoa, nome_completo, cpf_cnpj, rg_ie, nacionalidade, estado_civil, profissao, endereco_completo, telefone, email, responsavel_pj, data_cadastro, observacoes, tenant_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id_cliente"
-                params = (dados.get("tipo_pessoa"), dados.get("nome_completo"), dados.get("cpf_cnpj"), dados.get("rg_ie"), dados.get("nacionalidade"), dados.get("estado_civil"), dados.get("profissao"), dados.get("endereco_completo"), dados.get("telefone"), dados.get("email"), dados.get("responsavel_pj"), datetime.now().strftime("%Y-%m-%d"), dados.get("observacoes"), self.tenant_id)
+                query = """
+                    INSERT INTO clientes (
+                        tipo_pessoa, nome_completo, cpf_cnpj, rg_ie, nacionalidade, 
+                        estado_civil, profissao, endereco_completo, telefone, email, 
+                        responsavel_pj, data_cadastro, observacoes, tenant_id
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id_cliente
+                """
+                params = (
+                    dados.get("tipo_pessoa"),
+                    dados.get("nome_completo"),
+                    dados.get("cpf_cnpj"),
+                    dados.get("rg_ie"),
+                    dados.get("nacionalidade"),
+                    dados.get("estado_civil"),
+                    dados.get("profissao"),
+                    dados.get("endereco_completo"),
+                    dados.get("telefone"),
+                    dados.get("email"),
+                    dados.get("responsavel_pj"),
+                    datetime.now().strftime("%Y-%m-%d"),
+                    dados.get("observacoes"),
+                    self.tenant_id,
+                )
             else:
-                query = "INSERT INTO clientes (tipo_pessoa, nome_completo, cpf_cnpj, rg_ie, nacionalidade, estado_civil, profissao, endereco_completo, telefone, email, responsavel_pj, data_cadastro, observacoes) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id_cliente"
-                params = (dados.get("tipo_pessoa"), dados.get("nome_completo"), dados.get("cpf_cnpj"), dados.get("rg_ie"), dados.get("nacionalidade"), dados.get("estado_civil"), dados.get("profissao"), dados.get("endereco_completo"), dados.get("telefone"), dados.get("email"), dados.get("responsavel_pj"), datetime.now().strftime("%Y-%m-%d"), dados.get("observacoes"))
-            # Execute and get the auto-generated ID
+                query = """
+                    INSERT INTO clientes (
+                        tipo_pessoa, nome_completo, cpf_cnpj, rg_ie, nacionalidade, 
+                        estado_civil, profissao, endereco_completo, telefone, email, 
+                        responsavel_pj, data_cadastro, observacoes
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id_cliente
+                """
+                params = (
+                    dados.get("tipo_pessoa"),
+                    dados.get("nome_completo"),
+                    dados.get("cpf_cnpj"),
+                    dados.get("rg_ie"),
+                    dados.get("nacionalidade"),
+                    dados.get("estado_civil"),
+                    dados.get("profissao"),
+                    dados.get("endereco_completo"),
+                    dados.get("telefone"),
+                    dados.get("email"),
+                    dados.get("responsavel_pj"),
+                    datetime.now().strftime("%Y-%m-%d"),
+                    dados.get("observacoes"),
+                )
+
             result = self._execute_query(query, params, fetch="one")
             id_cliente = str(result['id_cliente']) if result else None
+
         return id_cliente
+
         
             
 
@@ -270,7 +366,8 @@ class CadastroManager:
                     check_query += " AND tenant_id=%s"
                     check_params = (id_processo, self.tenant_id)
                 
-                resultado = self._execute_query(check_query, check_params, fetch=True)
+                resultado = self._execute_query(check_query, check_params, fetch="all")
+
                 if resultado:
                     numero_cnj_atual = resultado[0].get('numero_cnj')
                     numero_cnj_novo = dados.get("numero_cnj")
