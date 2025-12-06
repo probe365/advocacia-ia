@@ -4,10 +4,22 @@ Executa análise comparativa dos dados
 """
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict
 
-from pipeline import Pipeline
+import pytest
+
+SHOULD_SKIP = os.getenv("RUN_PIPELINE_TESTS") != "1"
+pytestmark = pytest.mark.skipif(
+    SHOULD_SKIP,
+    reason="Pipeline integration tests require RUN_PIPELINE_TESTS=1 and real services",
+)
+
+if not SHOULD_SKIP:
+    from pipeline import Pipeline
+else:  # pragma: no cover - skip scenario
+    Pipeline = None  # type: ignore[assignment]
 
 # Configurar logging detalhado
 logging.basicConfig(

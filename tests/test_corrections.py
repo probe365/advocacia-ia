@@ -2,8 +2,21 @@
 Script simplificado para testar as correções do FIRAC
 """
 import logging
-from pipeline import Pipeline
+import os
 from pathlib import Path
+
+import pytest
+
+SHOULD_SKIP = os.getenv("RUN_PIPELINE_TESTS") != "1"
+pytestmark = pytest.mark.skipif(
+    SHOULD_SKIP,
+    reason="Pipeline integration tests require RUN_PIPELINE_TESTS=1 and real services",
+)
+
+if not SHOULD_SKIP:
+    from pipeline import Pipeline
+else:  # pragma: no cover - skip scenario
+    Pipeline = None  # type: ignore[assignment]
 
 # Configurar logging
 logging.basicConfig(
