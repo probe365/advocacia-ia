@@ -1,0 +1,103 @@
+label,count
+AgRg nos EAREsp,202
+ProAfR no REsp,129
+REsp,101
+CC,80
+AgRg na Rcl,68
+AgRg no CC,65
+AgRg na RvCr,62
+AgRg nos EREsp,56
+AgInt na ExeMS,37
+EDcl no AgRg nos EAREsp,35
+AgRg na Pet,25
+RvCr,23
+AgRg no MS,21
+EDcl nos EDcl nos EDcl nos EmbExeMS,21
+AgRg nos EDcl nos EAREsp,20
+AgInt nos EmbExeMS,17
+EDcl no REsp,15
+EDcl nos EDcl nos EmbExeMS,14
+Rcl,12
+HC,9
+AgInt nos EDcl nos EmbExeMS,7
+EDcl no AgRg nos EDcl nos EAREsp,7
+AgInt na PET na ExeMS,6
+AgInt na ImpExe na ExeMS,6
+EDcl no AgInt nos EmbExeMS,6
+EDcl nos EDcl no AgRg nos EAREsp,6
+EDcl no AgRg na Pet,6
+AgRg nos EDcl no CC,6
+IDC,5
+AgRg nos EDcl na RvCr,5
+AgInt nos EDcl na ExeMS,5
+EREsp,5
+EDcl no AgRg na Rcl,5
+AgRg no AgRg nos EAREsp,4
+AgRg nos EDv nos EAREsp,4
+EDcl no AgRg na RvCr,4
+AgRg no REsp,4
+EDcl no AgInt na ExeMS,4
+EDcl no AgRg nos EREsp,4
+AgRg nos EDcl nos EREsp,4
+AgRg nos EDcl na Rcl,4
+MS,4
+AgRg no HC,4
+EDcl nos EDcl no AgInt nos EmbExeMS,3
+EAREsp,3
+EDcl nos EDcl no REsp,3
+PET no CC,2
+AgInt na TutPrv na ExeMS,2
+AgRg nos EDcl nos EDcl na Rcl,2
+AgRg na TutPrv nos EAREsp,2
+AgRg na PET no AgRg nos EAREsp,2
+EDcl no MS,2
+AgRg no AgRg na RvCr,2
+AgRg na PET na Rcl,2
+AgRg no AgRg na Rcl,2
+AgRg no AREsp,2
+EDcl no AgRg nos EDcl nos EREsp,2
+RCD na Rcl,2
+EDcl no AgInt na ImpExe na ExeMS,2
+EDcl no AgRg no AgRg nos EAREsp,2
+AgRg no RHC,2
+RE no RHC,1
+AgRg nos EDcl no AgRg nos EDv nos EAREsp,1
+EDcl nos EDcl no MS,1
+AgRg na PET no HC,1
+EDcl nos EDcl no AgRg nos EREsp,1
+AgRg no AgRg nos EREsp,1
+RCD no AgRg nos EAREsp,1
+AgInt no AgRg na PET na ExeMS,1
+AgInt nos EDcl nos EDcl na ExeMS,1
+AgInt EXEC na ExeAR,1
+AgRg nos EDcl no MS,1
+EDcl no AgRg no CC,1
+EDcl no AgInt nos EDcl nos EDcl nos EmbExeMS,1
+EDcl no AgInt nos EDcl nos EmbExeMS,1
+EDcl nos EDcl nos EDcl nos EDcl no AgInt nos EmbExeMS,1
+EDcl nos EDcl na PET nos EmbExeMS,1
+RCD no MS,1
+RCD no HD,1
+EDcl na Pet,1
+AgRg na AR,1
+EDcl no AgRg nos EDv nos EDcl no AgRg nos EAREsp,1
+EDcl nos EDcl nos EDcl no AgRg nos EDv nos EDcl no AgRg nos EAREsp,1
+EDcl no AgRg no RHC,1
+EDcl nos EDcl nos EDcl no AgRg nos EmbExeMS,1
+AgInt no ExeMS,1
+EDcl no AgRg no AREsp,1
+EDcl nos EDcl no AgRg no AREsp,1
+PExt nos EDcl nos EDcl no AgRg nos EAREsp,1
+EDcl nos EAREsp,1
+EDcl nos EDcl nos EDcl no AgRg nos EAREsp,1
+AREsp,1
+EDcl na RvCr,1
+AgRg nos EmbExeMS,1
+AgInt nos EDcl nos EDcl nos EmbExeMS,1
+AgInt nos EDcl no AgInt na ExeAR,1
+AgInt na PET na ExeAR,1
+AgRg no HD,1
+AgInt nos EDcl na ImpExe na ExeMS,1
+QO no REsp,1
+AgInt no AgInt nos EmbExeMS,1
+RHC,1

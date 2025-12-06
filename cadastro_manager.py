@@ -32,8 +32,28 @@ class CadastroManager:
         # Tabelas agora gerenciadas exclusivamente por Alembic migrations.
 
     def _get_connection(self):
-        # Use keyword arguments for safer handling of special / non-ASCII chars
-        return psycopg2.connect(**self._db_params)
+        import psycopg2
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        params = {
+            "dbname": os.getenv("DB_NAME", "advocacia_ia"),
+            "user": os.getenv("DB_USER", "postgres"),
+            "password": os.getenv("DB_PASSWORD", ""),
+            "host": os.getenv("DB_HOST", "localhost"),
+            "port": os.getenv("DB_PORT", "5432"),
+        }
+
+        # log sem expor senha
+        safe_params = {k: ("***" if "password" in k.lower() else v)
+                        for k, v in params.items()}
+        logger.info(f"[DB CONNECT] Connecting with params: {safe_params}")
+
+        # aqui deixamos o psycopg2 cuidar de encoding/DSN
+        return psycopg2.connect(**params)
+
+
 
     def _execute_query(self, query: str, params: tuple = None, fetch: Optional[str] = None) -> Any:
         conn = None
@@ -566,6 +586,174 @@ class CadastroManager:
             logger.error(f"Erro inesperado ao processar CEP {cep_limpo}: {e}")
             return None
     
+    def save_documento(self, dados: Dict[str, Any]) -> int:
+        logger.info(f"[DOCUMENTOS] Tentando salvar documento: {dados}")
+        """
+        Insere um documento na tabela documentos.
+        Retorna o ID criado.
+        """
+        query = """
+            INSERT INTO documentos (
+                id_cliente, id_processo, tipo, titulo, descricao,
+                arquivo_nome, mime_type, tamanho_bytes,
+                storage_backend, storage_path,
+                checksum_sha256, criado_por_id, tenant_id,
+                created_at, updated_at
+            )
+            VALUES (
+                %s,%s,%s,%s,%s,
+                %s,%s,%s,
+                %s,%s,
+                %s,%s,%s,
+                NOW(), NOW()
+            )
+            RETURNING id
+        """
+
+        params = (
+            dados.get("id_cliente"),
+            dados.get("id_processo"),
+            dados.get("tipo"),
+            dados.get("titulo"),
+            dados.get("descricao"),
+            dados.get("arquivo_nome"),
+            dados.get("mime_type"),
+            dados.get("tamanho_bytes"),
+            dados.get("storage_backend"),
+            dados.get("storage_path"),
+            dados.get("checksum_sha256"),
+            dados.get("criado_por_id"),
+            self.tenant_id,
+        )
+
+        result = self._execute_query(query, params, fetch="one")
+        return result["id"]
+
+    def get_documentos_by_processo(self, id_processo: str) -> List[Dict[str, Any]]:
+        if self.multi_tenant:
+            query = """
+                SELECT *
+                FROM documentos
+                WHERE id_processo = %s AND tenant_id = %s
+                ORDER BY created_at DESC
+            """
+            params = (id_processo, self.tenant_id)
+        else:
+            query = """
+                SELECT *
+                FROM documentos
+                WHERE id_processo = %s
+                ORDER BY created_at DESC
+            """
+            params = (id_processo,)
+
+        return self._execute_query(query, params, fetch="all") or []
+
+    def get_documento_by_id(self, doc_id: int) -> Optional[Dict[str, Any]]:
+        if self.multi_tenant:
+            query = "SELECT * FROM documentos WHERE id=%s AND tenant_id=%s"
+            params = (doc_id, self.tenant_id)
+        else:
+            query = "SELECT * FROM documentos WHERE id=%s"
+            params = (doc_id,)
+
+        return self._execute_query(query, params, fetch="one")
+
+
+    def update_documento(self, doc_id: int, dados: Dict[str, Any]) -> bool:
+        campos = []
+        valores = []
+
+        for campo in [
+            "tipo", "titulo", "descricao",
+            "mime_type", "tamanho_bytes",
+            "storage_backend", "storage_path",
+            "checksum_sha256", "criado_por_id"
+        ]:
+            if dados.get(campo) is not None:
+                campos.append(f"{campo}=%s")
+                valores.append(dados[campo])
+
+        set_str = ", ".join(campos)
+
+        if self.multi_tenant:
+            query = f"""
+                UPDATE documentos
+                SET {set_str}, updated_at=NOW()
+                WHERE id=%s AND tenant_id=%s
+            """
+            valores.append(doc_id)
+            valores.append(self.tenant_id)
+        else:
+            query = f"""
+                UPDATE documentos
+                SET {set_str}, updated_at=NOW()
+                WHERE id=%s
+            """
+            valores.append(doc_id)
+
+        rc = self._execute_query(query, tuple(valores))
+        return rc > 0
+
+
+    def delete_documento(self, doc_id: int) -> bool:
+        if self.multi_tenant:
+            query = "DELETE FROM documentos WHERE id=%s AND tenant_id=%s"
+            params = (doc_id, self.tenant_id)
+        else:
+            query = "DELETE FROM documentos WHERE id=%s"
+            params = (doc_id,)
+
+        rc = self._execute_query(query, params)
+        return rc > 0
+    
+    def delete_documento_por_titulo(self, id_processo: str, titulo: str) -> bool:
+        """
+        Remove um registro da tabela documentos pelo id_processo + título (nome do arquivo).
+        Retorna True se alguma linha foi apagada.
+        """
+        sql = """
+            DELETE FROM documentos
+            WHERE tenant_id = %s
+            AND id_processo = %s
+            AND titulo = %s
+            AND tenant_id = %s
+                    """
+                    # Se você estiver usando coluna tenant_id também, pode incluir:
+        # AND tenant_id = %s
+        # e passar self.tenant_id como terceiro parâmetro.
+
+        with self.conn.cursor() as cur:
+            cur.execute(sql, (self.tenant_id, id_processo, titulo, self.tenant_id))
+
+            apagados = cur.rowcount
+
+        self.conn.commit()
+        return apagados > 0
+
+    def delete_documento_by_filename(self, id_processo: str, titulo: str) -> bool:
+        """
+        Deleta um registro da tabela documentos para este tenant, processo e título.
+        Retorna True se ao menos 1 linha foi removida.
+        """
+        sql = """
+            DELETE FROM documentos
+            WHERE tenant_id  = %s
+            AND id_processo = %s
+            AND titulo      = %s
+        """
+        params = (self.tenant_id, id_processo, titulo)
+
+        # 🔥 MUITO IMPORTANTE: use o MESMO helper que as outras funções usam
+        # Ex.: _get_conn(), get_conn(), get_connection()...
+        # Veja um método já existente (listar, inserir, etc.) e copie o padrão.
+        with self._get_connection() as conn:   # <-- troque _get_conn pelo nome correto
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                return cur.rowcount > 0
+
+
+
     def get_partes_adversas_by_processo(self, id_processo: str) -> List[Dict[str, Any]]:
         """
         Retorna todas as partes adversas de um processo.

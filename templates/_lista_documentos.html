@@ -1,30 +1,74 @@
-<ul class="list-group">
-  {% for doc in documentos %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-2">
-        {% if doc.type == 'image' %}
-          <a href="/processos/ui/{{ request.view_args.id_processo }}/arquivo/{{ doc.source }}" target="_blank">
-            <img src="/processos/ui/{{ request.view_args.id_processo }}/arquivo/{{ doc.source }}" alt="{{ doc.source }}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">
-          </a>
-        {% endif %}
-        <div>
-          <small class="d-block">{{ doc.source or 'Nome não disponível' }}</small>
-          <small class="text-muted">Tipo: {{ doc.type or 'N/A' }} ({{ doc.chunk_count }} chunk{{ 's' if doc.chunk_count>1 }})</small>
-        </div>
-      </div>
+{# _lista_documentos.html #}
+{% for doc in documentos %}
+  {# Nome do arquivo: tenta vários campos, na ordem #}
+  {% set nome_arquivo =
+      doc.filename
+      or doc.arquivo_nome
+      or doc.titulo
+      or doc.source
+      or (doc.metadata.source if doc.metadata is defined and doc.metadata and doc.metadata.source is defined else None)
+      or (doc.storage_path.split('/')[-1] if doc.storage_path is defined and doc.storage_path else '')
+  %}
+  {% set nome_arquivo = nome_arquivo or 'Nome não disponível' %}
 
-  <button class="btn btn-sm btn-outline-danger"
-      hx-delete="/processos/ui/{{ request.view_args.id_processo }}/documentos/{{ doc.source }}"
-              hx-confirm="Tem certeza que deseja excluir este documento do caso? Esta ação não pode ser desfeita."
-              hx-target="#lista-documentos"
-              hx-swap="outerHTML">
-        🗑️
+  {# Tipo do documento: pode vir como type ou tipo #}
+  {% set tipo_doc = doc.type or doc.tipo or 'N/A' %}
+
+  {# Número de chunks: tenta vários campos comuns; default = 0 #}
+  {% set num_chunks =
+      doc.num_chunks
+      or doc.chunks
+      or doc.n_chunks
+      or doc.chunk_count
+      or 0
+  %}
+
+  <div class="list-group-item d-flex justify-content-between align-items-center">
+    <div>
+      <div><strong>{{ nome_arquivo }}</strong></div>
+      <div class="small text-muted">
+        Tipo: {{ tipo_doc }} ({{ num_chunks }} chunks)
+      </div>
+    </div>
+
+    <div class="btn-group btn-group-sm">
+      {# VISUALIZAR – chama preview (HTMX) #}
+      <button
+        class="btn btn-outline-primary"
+        hx-get="{{ url_for(
+                    'processos.ui_preview_documento',
+                    id_processo=id_processo,
+                    filename=nome_arquivo
+                 ) }}"
+        hx-target="#preview-area"
+        hx-swap="innerHTML">
+        Visualizar
       </button>
 
-    </li>
-  {% else %}
-    <li class="list-group-item text-muted text-center placeholder-doc">
-      <small>Nenhum documento neste caso ainda.</small>
-    </li>
-  {% endfor %}
-</ul>
+      {# ABRIR – usa a rota ui_arquivo para servir o arquivo bruto #}
+      <a
+        class="btn btn-outline-secondary"
+        href="{{ url_for('processos.ui_arquivo',
+                        id_processo=id_processo,
+                        nome_arquivo='uploads/' ~ doc.filename) }}"
+        target="_blank">
+        Abrir
+      </a>
+
+
+      {# EXCLUIR – envia DELETE para a rota correta #}
+      <button
+        class="btn btn-outline-danger"
+        hx-delete="{{ url_for(
+                       'processos.ui_delete_documento',
+                       id_processo=id_processo,
+                       filename=nome_arquivo
+                    ) }}"
+        hx-target="#lista-documentos"
+        hx-swap="innerHTML"
+        hx-confirm="Tem certeza que deseja excluir este documento?">
+        🗑
+      </button>
+    </div>
+  </div>
+{% endfor %}

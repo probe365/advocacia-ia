@@ -1,0 +1,176 @@
+label,count
+AgRg no HC,12406
+AgRg no AREsp,4979
+AgRg no RHC,2504
+HC,1877
+AgRg no REsp,1877
+AREsp,1193
+REsp,770
+RHC,299
+AgRg no AgRg no AREsp,284
+AgRg nos EDcl no HC,249
+EDcl no AgRg no AREsp,243
+AgRg nos EDcl no AREsp,232
+AgRg no AgRg no HC,159
+AgRg no RMS,138
+EDcl no AgRg no HC,127
+AgRg nos EDcl no REsp,113
+EDcl no HC,79
+AgRg nos EDcl no RHC,72
+RCD no HC,72
+EDcl no AgRg no REsp,66
+EDcl no AgRg no RHC,38
+AgRg nos EDcl no AgRg no AREsp,33
+AgRg no AgRg no REsp,30
+EDcl no AREsp,29
+EDcl no AgRg nos EDcl no AREsp,25
+AgRg no AgRg no RHC,23
+EDcl no REsp,20
+AgRg no PExt no HC,20
+EDcl nos EDcl no AgRg no AREsp,19
+EDcl no RHC,16
+EDcl no AgRg no AgRg no AREsp,14
+AgRg na PET no HC,13
+AgRg na PET no AREsp,12
+AgRg nos EDcl nos EDcl no AREsp,11
+RMS,11
+AgRg na Pet,11
+EDcl nos EDcl no AgRg no HC,11
+RCD no AgRg no AREsp,9
+PET no HC,9
+RCD no AgRg no HC,8
+AgRg nos EDcl no RMS,8
+RCD no RHC,8
+EDcl nos EDcl no AgRg no REsp,7
+EDcl no AgRg nos EDcl no REsp,7
+AgRg nos EDcl no AgRg no HC,7
+PET no AREsp,7
+EDcl nos EDcl no AgRg nos EDcl no AREsp,6
+PExt no HC,6
+AgRg nos EDcl nos EDcl no HC,6
+AgRg na TutAntAnt,6
+AgRg no AgRg no AgRg no AREsp,6
+EDcl nos EDcl no HC,6
+AgRg no AgRg nos EDcl no AREsp,5
+EDcl nos EDcl nos EDcl no AgRg no AREsp,5
+PExt no RHC,5
+EDcl no AgRg no RMS,5
+AgRg na TutCautAnt,5
+AgRg no PExt no RHC,4
+RCD nos EDcl no AgRg no AREsp,4
+EDcl no AgRg nos EDcl no AgRg no AREsp,4
+EDcl no AgRg nos EDcl no HC,4
+EDcl no AgRg nos EDcl no RHC,3
+AgRg nos EDcl nos EDcl no REsp,3
+AgRg na PET no REsp,3
+AgRg na PET no RHC,3
+EDcl nos EDcl no AgRg no RHC,3
+PET no AgRg no AREsp,3
+EDcl nos EDcl no AgRg no AgRg no AREsp,3
+AgRg na PET no RMS,3
+AgRg no RCD no HC,3
+AgRg nos EDcl no AgRg nos EDcl no AREsp,3
+PET no RHC,3
+AgRg no AgInt no AREsp,2
+AgInt no REsp,2
+PET no REsp,2
+AgRg na TutPrv no HC,2
+EDcl nos EDcl no AgRg nos EDcl nos EDcl no AREsp,2
+AgRg nos EDcl no TP,2
+AgRg no AgRg no AgRg no HC,2
+EDcl nos EDcl nos EDcl no HC,2
+EDcl no AgRg na Pet,2
+AgRg no AgRg nos EDcl no AgRg no HC,2
+AgRg no RCD no AREsp,2
+AgRg no PExt no AREsp,2
+AgRg na TutPrv no REsp,2
+AgRg nos EDcl nos EDcl no AgRg no REsp,2
+AgRg na TutPrv no AREsp,2
+AgRg nos EDcl no AgRg nos EDcl no AgRg no AREsp,2
+RE na Pet,2
+AgRg nos EDcl no PExt no RHC,2
+EDcl nos EDcl no REsp,2
+EDcl no AgRg no AgRg no REsp,2
+EDcl nos EDcl no AREsp,2
+AgRg nos EDcl na Pet,2
+EDcl no AgRg na PET no AREsp,1
+PET no RCD nos EDcl no AgRg no AREsp,1
+AgRg na TutPrv nos EDcl nos EDcl no AgRg nos EDcl no AREsp,1
+AgRg no AgRg nos EDcl no RMS,1
+EDcl no RE no AgRg nos EDcl no RMS,1
+EDcl no AgRg no Ag no REsp,1
+EDcl no AgRg no AgRg nos EDcl no AREsp,1
+AgRg no AgRg na TutPrv no HC,1
+AgRg no RCD nos EDcl na PET na PET no HC,1
+AgRg nos EDcl no AgRg nos EDcl no AgRg nos EDcl no AREsp,1
+AgRg no RCD no AgRg no AREsp,1
+AgRg no RtPaut no AREsp,1
+AgInt no AREsp,1
+PET no RMS,1
+AgRg nos EDcl nos EDcl no RHC,1
+AgRg nos EDcl nos EDcl nos EDcl no RHC,1
+AgRg no TP,1
+EDcl no AgRg nos EDcl nos EDcl no AREsp,1
+AgRg na TutPrv no RHC,1
+AgRg nos EDcl nos EDcl nos EDcl nos EDcl no HC,1
+AgRg nos EDcl nos EDcl nos EDcl no HC,1
+EDcl no AgRg nos EDcl nos EDcl nos EDcl nos EDcl no HC,1
+EDcl no PExt nos EDcl no HC,1
+EDcl no AgRg no AgRg no Ag,1
+EDcl no AgRg nos EDcl nos EDcl no HC,1
+PExt nos EDcl no HC,1
+AgRg nos EDcl no PExt no HC,1
+AgRg no AgRg nos EDcl nos EDcl no AREsp,1
+AgRg nos EDcl nos EDcl no AgRg no AREsp,1
+AgRg no AgRg no PExt no HC,1
+EDcl no AgRg no AgRg no HC,1
+AgRg no PExt no REsp,1
+AgRg no AgRg no AgRg no REsp,1
+RE nos EDcl no AgRg no HC,1
+PET nos EDcl no AgRg nos EDcl no AgRg no AREsp,1
+AgRg nos EDcl no AgRg no RHC,1
+AgRg no RE no AREsp,1
+AgRg no AgRg nos EDcl no AgRg nos EDcl no AREsp,1
+AgRg no AgRg nos EDcl na PET no AREsp,1
+AgRg no AgRg no RMS,1
+AgRg nos EDcl no AgRg na PET no AgRg no HC,1
+EDcl no AgRg no AgRg no RMS,1
+RCD no AgRg no AgRg no AREsp,1
+AgRg no RE nos EDcl no AgRg no AREsp,1
+TutCautAnt,1
+AgRg no IAC no REsp,1
+AgRg no PExt no AgRg no HC,1
+PExt nos EDcl nos EDcl no AgRg no AREsp,1
+PET no PExt no HC,1
+PET nos EDcl no AgRg no AREsp,1
+EDcl no PExt no RHC,1
+AgRg no PExt no RMS,1
+EDcl no AgRg no PExt no AREsp,1
+RCD no PExt no RHC,1
+EDcl no AgRg nos EDcl no RMS,1
+AgRg na PET no AgRg no REsp,1
+AgRg no AgRg no AgRg no RHC,1
+AgRg nos EDcl no RCD no REsp,1
+PExt no AgRg no AREsp,1
+EDcl nos EDcl nos EDcl no AgRg nos EDcl no AREsp,1
+EDcl na PET no RHC,1
+AgRg no AgRg nos EDcl no HC,1
+RCD no AgRg nos EDcl no AgRg no AREsp,1
+PExt no AgRg no HC,1
+EDcl no AgRg nos EDcl nos EDcl no REsp,1
+PExt no PExt no RHC,1
+RE no AgRg no HC,1
+AgRg nos EDcl nos EDcl no AgRg no HC,1
+EDcl nos EDcl nos EDcl no AgRg no HC,1
+AgRg nos EDv no HC,1
+AgRg nos EDcl na TutPrv no REsp,1
+PExt no REsp,1
+RCD no PExt no HC,1
+EDcl nos EDcl nos EDcl nos EDcl nos EDcl no AgRg no AREsp,1
+EDcl na PET no AREsp,1
+PExt nos EDcl no AgRg no HC,1
+AgRg no RO no HC,1
+AgRg nos EDcl no PExt no REsp,1
+RCD nos EDcl no AgRg no AgRg no AREsp,1
+AgRg na PET no AgRg nos EDcl no AgRg no AREsp,1
+AgRg nos EDcl no AgRg nos EDcl no REsp,1

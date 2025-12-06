@@ -1,0 +1,6 @@
+nome_caso,numero_cnj,status,advogado_oab,tipo_parte,comarca,vara,juiz_nome,data_distribuicao,data_citacao,data_audiencia,valor_causa,valor_condenacao,tipo_acao,grau_jurisdicao,instancia,observacoes
+"Ação de Cobrança - Caso 1",1234567-89.2023.8.26.0100,ATIVO,,autor,"São Paulo","1ª Vara Cível","Dr. José Silva",2023-05-15,2023-06-20,2023-08-10,15000.50,12000.00,Cobrança,"1º Grau","1ª Instância","Aguardando sentença"
+"Ação Indenizatória - Caso 2",2234567-89.2023.8.26.0200,PENDENTE,,reu,"Campinas","2ª Vara Cível","Dra. Maria Santos",2023-06-01,2023-07-15,2023-09-20,50000.00,35000.00,Indenização,"1º Grau","1ª Instância","Recurso pendente"
+"Ação Trabalhista - Caso 3",3234567-89.2023.5.02.0001,ATIVO,,reclamante,"São Paulo","5ª Vara do Trabalho","Dr. Carlos Mendes",2023-04-10,2023-05-05,2023-07-25,25000.00,,Trabalhista,"1º Grau","1ª Instância","Perícia agendada"
+"Recurso de Apelação - Caso 4",4234567-89.2022.8.26.0300,ENCERRADO,,autor,"Guarulhos","4ª Vara Cível","Dra. Ana Paula",2022-03-20,2022-04-30,2022-11-15,80000.00,60000.00,"Responsabilidade Civil","2º Grau","2ª Instância","Processo concluído com êxito"
+"Ação de Despejo - Caso 5",5234567-89.2023.8.26.0400,ATIVO,,autor,"Santos","3ª Vara Cível","Dr. Roberto Lima",2023-07-01,2023-08-10,,12000.00,,Despejo,"1º Grau","1ª Instância","Aguardando desocupação"

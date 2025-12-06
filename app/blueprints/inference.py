@@ -4,7 +4,15 @@ Blueprint for legal text inference routes.
 Integrates with LegalInferClient for classification and similarity search.
 """
 from flask import Blueprint, request, jsonify
-from legal_infer_client import LegalInferClient
+# If legal_infer_client.py is in the same directory or project, use a relative import:
+# from .legal_infer_client import LegalInferClient
+
+# Or, if it's in the parent directory:
+# import sys
+# sys.path.append('..')
+# from legal_infer_client import LegalInferClient
+
+from legal_infer_client import LegalInferClient  # Use absolute import if in the same directory
 
 bp = Blueprint('inference', __name__, url_prefix='/api')
 

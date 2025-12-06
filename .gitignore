@@ -1,28 +1,13 @@
+# ambientes e cache
 venv/
 .venv/
 __pycache__/
 *.pyc
 
-# Pastas grandes
-data/
-models/
+# dados de embeddings / RAG (não versionar)
+ementas_kb_store/
+kb_store/
 cases/
-faiss/
-embeddings/
-index/
-checkpoints/
 
-# Arquivos grandes
-*.faiss
-*.npy
-*.pkl
-*.pt
-*.csv
-*.jsonl
-*.bin
-*.dll
-
-# Config
-*.env
-.env
-.env.local
+# logs locais
+*.log

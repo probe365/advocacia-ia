@@ -14,10 +14,7 @@ from app.services.ementas_kb_store import EmentasFAISSStore
 _EMENTAS_DIR = os.environ.get("EMENTAS_STORE_DIR", "data/ementas_faiss")
 store = EmentasFAISSStore(_EMENTAS_DIR)
 
-
-
-
-from model_server import model_server
+from app.model_server import model_server
 
 ementas_bp = Blueprint('ementas', __name__, url_prefix='/ementas')
 

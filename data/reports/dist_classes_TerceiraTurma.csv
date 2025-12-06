@@ -1,0 +1,134 @@
+label,count
+AgInt no AREsp,6496
+AgInt no REsp,2761
+REsp,2173
+AREsp,750
+AgInt nos EDcl no AREsp,737
+EDcl no AgInt no AREsp,477
+AgInt nos EDcl no REsp,413
+AgInt no AgInt no AREsp,341
+EDcl no REsp,147
+EDcl no AgInt no REsp,137
+AgInt no AgInt no REsp,75
+HC,66
+EDcl no AgInt nos EDcl no AREsp,66
+AgInt nos EDcl no AgInt no AREsp,42
+EDcl nos EDcl no AgInt no AREsp,42
+EDcl no AREsp,41
+AgInt no AgInt nos EDcl no AREsp,31
+AgInt no RMS,31
+AgInt na TutCautAnt,26
+AgInt nos EDcl nos EDcl no AREsp,22
+RHC,22
+EDcl no AgInt nos EDcl no REsp,21
+AgInt no HC,21
+AgInt nos EDcl nos EDcl no REsp,20
+AgInt no RHC,20
+EDcl no AgInt no AgInt no AREsp,18
+AgInt no TP,14
+AgInt na Pet,14
+AgInt nos EDcl no AgInt no REsp,14
+EDcl nos EDcl no REsp,13
+AgInt na PET no REsp,13
+AgInt na PET no AREsp,12
+AgInt no AgInt nos EDcl no REsp,12
+EDcl nos EDcl no AgInt no REsp,10
+AgInt na TutAntAnt,10
+AgInt nos EDcl no AgInt nos EDcl no REsp,9
+AgInt nos EDcl no AgInt nos EDcl no AREsp,9
+PET no AREsp,8
+AgInt na TutPrv no AREsp,8
+EDcl nos EDcl no AgInt nos EDcl no AREsp,8
+EDcl nos EDcl nos EDcl no AgInt no AREsp,7
+EDcl no AgInt no AgInt no REsp,7
+AgInt nos EDcl no RMS,7
+RMS,6
+EDcl no AgInt nos EDcl no AgInt no AREsp,6
+AgInt no Ag,5
+AgRg no REsp,5
+AgInt na TutPrv no REsp,5
+EDcl no AgInt nos EDcl no AgInt no REsp,5
+RCD nos EDcl no AgInt no AREsp,4
+EDcl nos EDcl no AgInt nos EDcl no REsp,4
+AgInt no AgInt no AgInt no REsp,4
+RCD no AgInt no AREsp,4
+AgRg no AREsp,4
+AgInt no AgInt no AgInt no AREsp,3
+EDcl no AgRg no AREsp,3
+AgInt nos EDcl no TP,3
+RCD no AgInt no REsp,3
+PET no REsp,3
+EDcl nos EDcl no AREsp,3
+AgInt nos EDcl na TutCautAnt,3
+EDcl nos EDcl nos EDcl no REsp,2
+AgInt no AgInt no AgInt nos EDcl no AREsp,2
+AgInt no AgInt no TP,2
+EDcl nos EDcl no AgInt no AgInt no AREsp,2
+EDcl no HC,2
+AgInt no AgRg no AREsp,2
+AgInt no RCD no AREsp,2
+EDcl no AgInt nos EDcl nos EDcl no REsp,2
+AgInt nos EDcl nos EDcl no AgInt no REsp,2
+AgInt nos EDcl na TutPrv no REsp,2
+PET no AgInt no AREsp,2
+EDcl nos EDcl nos EDcl no AgInt no REsp,2
+AgInt nos EDcl no HC,2
+RCD no AREsp,2
+AgInt nos EDcl nos EDcl no AgInt no AREsp,2
+AgInt nos EDcl na TutPrv no AREsp,2
+AgInt nos EDcl no AgInt nos EDcl nos EDcl no REsp,1
+AgInt nos EDcl na PET no REsp,1
+AgInt nos EDcl nos EDcl nos EDcl nos EDcl no AREsp,1
+EDcl no AgInt no AgInt nos EDcl nos EDcl no AREsp,1
+EDcl nos EDcl no AgInt no AgInt nos EDcl nos EDcl no AREsp,1
+EDcl nos EDcl nos EDcl nos EDcl no AgInt no AgInt no REsp,1
+EDcl nos EDcl nos EDcl no AgInt no AgInt no REsp,1
+RE nos EDcl no AgRg no REsp,1
+AgInt no AgInt na TutPrv no REsp,1
+EDcl no AgInt nos EDcl nos EDcl nos EDcl no AREsp,1
+EDcl no AgInt nos EDcl nos EDcl nos EDcl nos EDcl no AREsp,1
+AgInt nos EDcl na MC,1
+EDcl nos EDcl nos EDcl no AgInt nos EDcl nos EDcl no AREsp,1
+RE nos EDcl no AgInt no REsp,1
+AgInt nos EDcl na Pet,1
+EDcl no AgInt nos EDcl nos EDcl na PET no AREsp,1
+EDcl no AgInt nos EDcl no PDist no REsp,1
+EDcl na PET nos EDcl no AgInt no AREsp,1
+EDcl nos EDcl nos EDcl na PET no REsp,1
+EDcl nos EDcl no HC,1
+AgInt no AgInt no AgInt nos EDcl no REsp,1
+AgInt na PET na Pet,1
+AgInt no AgRg no REsp,1
+AgRg no AgRg no REsp,1
+RCD nos EDcl no AREsp,1
+EDcl nos EDcl nos EDcl no AgInt nos EDcl no AREsp,1
+EDcl nos EDcl no AgInt no AgInt no AgInt nos EDcl no REsp,1
+AgInt nos EDcl nos EDcl no AgInt nos EDcl no AREsp,1
+EDcl no AgInt nos EDcl no AgInt nos EDcl no REsp,1
+EDcl no AgInt nos EDcl nos EDcl no AgInt nos EDcl no AREsp,1
+AgInt no AgInt nos EDcl nos EDcl no REsp,1
+AgInt na PET no HC,1
+EDcl nos EDcl no AgInt nos EDcl no AgInt nos EDcl no AREsp,1
+EDcl nos EDcl nos EDcl nos EDcl no AgInt no REsp,1
+EDcl no AgInt na TutCautAnt,1
+EDcl no AgInt nos EDcl no Ag,1
+EDcl no AgInt no HC,1
+EDcl nos EDcl nos EDcl no AgInt no AgInt no AREsp,1
+AgInt nos EDcl no RCD no REsp,1
+EDcl nos EDcl nos EDcl nos EDcl nos EDcl no AgInt no REsp,1
+EDcl no AgInt no PDist no AREsp,1
+EDcl no AgInt na PET no REsp,1
+EDcl nos EDcl no AgInt nos EDcl nos EDcl no AREsp,1
+EDcl na PET no REsp,1
+EDcl no AgInt no AgInt nos EDcl no AREsp,1
+AgInt nos EDcl na TutAntAnt,1
+AgInt no AgInt na TutPrv no AREsp,1
+AgInt nos EDcl no AgInt nos EDcl no AgInt no AREsp,1
+AgInt nos EDcl na DESIS no AREsp,1
+Pet,1
+AgInt nos EDcl no AgInt nos EDcl no AgInt nos EDcl no REsp,1
+AgInt nos EDcl na PET nos EDcl no AREsp,1
+EDcl no AgInt na TutPrv no AREsp,1
+EDcl nos EDcl nos EDcl nos EDcl no AgInt nos EDcl na Pet,1
+RCD nos EDcl na TutCautAnt,1
+EDcl no AgInt nos EDcl na Pet,1

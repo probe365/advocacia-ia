@@ -1,0 +1,4 @@
+nome_caso,numero_cnj,status,advogado_oab,tipo_parte
+"Silva v. Company X",1234567890123456789,ATIVO,09874,autor
+"Maria Defense",2345678901234567890,PENDENTE,OAB-23456-SP,reu
+"Third Party Issue",3456789012345678901,ATIVO,09874,terceiro

@@ -11,25 +11,28 @@ import spacy
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document 
-
-# Optional: moviepy for video processing (requires FFmpeg)
-try:
-    from moviepy.editor import VideoFileClip
-    MOVIEPY_AVAILABLE = True
-except ImportError:
-    MOVIEPY_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning("moviepy not available - video processing disabled. Install FFmpeg to enable.")
-
+from moviepy.editor import VideoFileClip
 import os # Para remoção de arquivos temporários em add_video
 import tempfile
 import openai
 
+from openai import OpenAI
+
+openai.api_key = "...seu_token..."
+
+client = OpenAI()
+
 # Importa as novas funções utilitárias
-from utils_arq import extract_text_from_pdf_bytes
+from utils_arq import extract_text_from_pdf_bytes, extract_text_from_txt_bytes
 
 # Funções de fetch dos módulos externos
-# from Learning.normative_sources import fetch_senado_normas, fetch_lexml_norma_html
+# If 'normative_sources.py' is in a subfolder named 'Learning' inside your current directory, use:
+# from .Learning.normative_sources import fetch_senado_normas, fetch_lexml_norma_html
+
+# If 'normative_sources.py' is in the same directory as this file, use:
+# from normative_sources import fetch_senado_normas, fetch_lexml_norma_html
+
+# Choose the correct import based on your folder structure and remove the others.
 from datajud import fetch_datajud_jurisprudencia, fetch_datajud_por_processo, fetch_datajud_bool_query
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -101,203 +104,15 @@ class IngestionHandler:
         return text
 
     def add_image(self, img_bytes: bytes, source_name: str = "image_upload") -> str: 
-        text = ""
-        try:
-            if img_bytes.lstrip().startswith(b"%PDF"):
-                # Caso raro: usuário enviou PDF com extensão de imagem
-                text = extract_text_from_pdf_bytes(img_bytes)
-            else:
-                # Guardas de tamanho para evitar congelar: limitar a ~5MB e redimensionar se > 2500px
-                size_mb = len(img_bytes) / (1024*1024)
-                if size_mb > 8:
-                    logger.warning(f"Imagem '{source_name}' muito grande ({size_mb:.1f}MB); reduzindo processamento.")
-                img = Image.open(BytesIO(img_bytes))
-                # Converte para RGB e escala de cinza para melhorar OCR
-                if img.mode not in ("L", "RGB"):
-                    img = img.convert("RGB")
-                gray = img.convert("L")
-                max_dim = 2500
-                if max(img.size) > max_dim:
-                    scale = max_dim / float(max(img.size))
-                    new_size = (int(img.size[0]*scale), int(img.size[1]*scale))
-                    gray = gray.resize(new_size)
-                # Config PSM 6 (blocos de texto) para acelerar
-                text = pytesseract.image_to_string(gray, lang="por+eng", config="--oem 3 --psm 6")
-        except pytesseract.TesseractNotFoundError:
-            logger.error("Tesseract não configurado. Usando placeholder sem OCR.")
-            text = ""
-        except Exception as e:
-            logger.error(f"Erro ao processar imagem '{source_name}': {e}", exc_info=True)
-            text = ""
-        if text and text.strip():
-            self._add_text_to_case_store(text, {"source": source_name, "type": "image"})
+        text = "";
+        if img_bytes.lstrip().startswith(b"%PDF"): text = self._extract_text_from_pdf_bytes(img_bytes)
         else:
-            # Garante cadastro de metadados para listagem mesmo sem OCR
-            logger.warning(f"Nenhum texto extraído da imagem: {source_name}; adicionando placeholder.")
-            placeholder = "[imagem_sem_texto]"
-            self._add_text_to_case_store(placeholder, {"source": source_name, "type": "image", "ocr":"none"})
+            try: text = pytesseract.image_to_string(Image.open(BytesIO(img_bytes)), lang="por+eng")
+            except pytesseract.TesseractNotFoundError: logger.error("Tesseract não configurado."); raise
+            except Exception as e: logger.error(f"Erro ao processar imagem '{source_name}': {e}", exc_info=True)
+        if text: self._add_text_to_case_store(text, {"source": source_name, "type": "image"})
+        else: logger.warning(f"Nenhum texto extraído da imagem: {source_name}")
         return text
-
-    # ================= Métodos para KB Global =================
-    def _add_text_to_kb_store(self, text: str, metadata: Dict[str, Any]):
-        if not text or not text.strip():
-            logger.warning(f"Texto KB vazio para add. Fonte={metadata.get('source')}")
-            return
-        
-        # Validação extra: garantir que text é string
-        if not isinstance(text, str):
-            logger.error(f"_add_text_to_kb_store recebeu tipo inválido: {type(text)}. Convertendo para string.")
-            text = str(text)
-        
-        # CRÍTICO: Validar e limpar encoding ANTES de adicionar ao Chroma
-        # Detectar escape sequences literais (ex: \xc3\xa9) ou caracteres corrompidos (Ã©)
-        if '\\x' in text[:500] or any(bad in text[:500] for bad in ['Ã©', 'Ã§', 'Ã£', 'Ãµ']):
-            logger.warning(f"Detectado encoding incorreto em '{metadata.get('source')}'. Aplicando correção...")
-            try:
-                # Se tem escape sequences literais como string
-                if '\\x' in text[:500]:
-                    # Converter: "\\xc3\\xa9" -> bytes -> UTF-8 string
-                    text = text.encode('latin1').decode('unicode_escape').encode('latin1').decode('utf-8')
-                    logger.info(f"Corrigido escape sequences literais para '{metadata.get('source')}'")
-                # Se tem caracteres corrompidos tipo "Ã©"
-                elif any(bad in text[:500] for bad in ['Ã©', 'Ã§', 'Ã£']):
-                    text = text.encode('latin1').decode('utf-8')
-                    logger.info(f"Corrigido caracteres corrompidos para '{metadata.get('source')}'")
-            except Exception as e:
-                logger.error(f"Falha ao corrigir encoding: {e}. Salvando como está.")
-        
-        chunks = self.splitter.split_text(text)
-        docs_to_add = [Document(page_content=c, metadata=metadata) for c in chunks]
-        if docs_to_add:
-            self.kb_store.add_documents(docs_to_add)
-            self.kb_store.persist()
-            logger.info(f"{len(docs_to_add)} chunks adicionados à KB. Fonte: {metadata.get('source')}")
-
-    def add_text_kb(self, text_bytes: bytes, source_name: str = "text_kb") -> str:
-        """Adiciona arquivo TXT à KB Global (mesma lógica do upload de processos)."""
-        try:
-            # Usar EXATAMENTE a mesma lógica que funciona em processar_upload_de_arquivo
-            if isinstance(text_bytes, str):
-                text = text_bytes
-            else:
-                try:
-                    text = text_bytes.decode('utf-8')
-                    logger.info(f"TXT KB '{source_name}' decodificado com UTF-8")
-                except UnicodeDecodeError:
-                    try:
-                        text = text_bytes.decode('latin-1')
-                        logger.info(f"TXT KB '{source_name}' decodificado com latin-1")
-                    except Exception as e:
-                        logger.error(f"Falha ao decodificar '{source_name}': {e}")
-                        text = ''
-            
-            if not text or not text.strip():
-                logger.warning(f"TXT KB '{source_name}' está vazio ou não pôde ser decodificado.")
-                return text
-            
-            # Preview para debug
-            preview = text[:150].replace('\n', ' ')
-            logger.info(f"TXT KB '{source_name}' → Preview: {preview}")
-            
-            self._add_text_to_kb_store(text, {
-                "source": source_name, 
-                "filename": source_name, 
-                "type": "text", 
-                "scope": "kb"
-            })
-            
-            logger.info(f"TXT KB '{source_name}' indexado ({len(text)} chars, {text.count(chr(10))} linhas)")
-            return text
-        except Exception as e:
-            logger.error(f"Erro ao processar TXT KB '{source_name}': {e}", exc_info=True)
-            return ""
-
-    def add_pdf_kb(self, pdf_bytes: bytes, source_name: str = "pdf_kb") -> str:
-        text = extract_text_from_pdf_bytes(pdf_bytes)
-        if text:
-            self._add_text_to_kb_store(text, {"source": source_name, "filename": source_name, "type": "pdf", "scope": "kb"})
-        else:
-            logger.warning(f"PDF KB '{source_name}' sem texto.")
-        return text
-
-    def add_image_kb(self, img_bytes: bytes, source_name: str = "image_kb") -> str:
-        text = ""
-        try:
-            img = Image.open(BytesIO(img_bytes))
-            if img.mode not in ("L","RGB"):
-                img = img.convert("RGB")
-            gray = img.convert("L")
-            text = pytesseract.image_to_string(gray, lang="por+eng", config="--oem 3 --psm 6")
-        except Exception as e:
-            logger.error(f"Erro OCR KB imagem '{source_name}': {e}")
-        if text and text.strip():
-            self._add_text_to_kb_store(text, {"source": source_name, "filename": source_name, "type": "image", "scope": "kb"})
-        else:
-            placeholder = "[imagem_sem_texto]"
-            self._add_text_to_kb_store(placeholder, {"source": source_name, "filename": source_name, "type": "image", "ocr":"none", "scope": "kb"})
-        return text
-
-    def add_audio_kb(self, audio_bytes: bytes, source_name: str = "audio_kb", audio_format_suffix: str = ".mp3", openai_client: openai.OpenAI = None) -> str:
-        if not openai_client:
-            logger.error("Cliente OpenAI necessário para áudio KB.")
-            return ""
-        tmp_path = None; text = ""
-        try:
-            with tempfile.NamedTemporaryFile(suffix=audio_format_suffix, delete=False) as tmp_f:
-                tmp_f.write(audio_bytes); tmp_path = tmp_f.name
-            with open(tmp_path, 'rb') as f_h:
-                resp = openai_client.audio.transcriptions.create(model="whisper-1", file=f_h)
-            text = resp.text if resp else ""
-        except Exception as e:
-            logger.error(f"Erro áudio KB '{source_name}': {e}")
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                try: os.remove(tmp_path)
-                except: pass
-        if text:
-            self._add_text_to_kb_store(text, {"source": source_name, "filename": source_name, "type": "audio", "scope": "kb"})
-        return text
-
-    def add_video_kb(self, video_bytes: bytes, source_name: str = "video_kb", video_format_suffix: str = ".mp4", openai_client: openai.OpenAI = None) -> Dict[str, Any]:
-        if not MOVIEPY_AVAILABLE:
-            logger.error("Video processing disabled - moviepy/FFmpeg not installed.")
-            return {"transcript": ""}
-        if not openai_client:
-            logger.error("Cliente OpenAI necessário para vídeo KB.")
-            return {"transcript":""}
-        transcript = ""; tmp_vid = None; clip=None; tmp_aud=None
-        try:
-            with tempfile.NamedTemporaryFile(suffix=video_format_suffix, delete=False) as tmp_f: tmp_f.write(video_bytes); tmp_vid = tmp_f.name
-            clip = VideoFileClip(tmp_vid)
-            if clip.audio:
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_a_f: tmp_aud = tmp_a_f.name
-                clip.audio.write_audiofile(tmp_aud, codec="pcm_s16le", logger=None)
-                with open(tmp_aud,'rb') as f_a:
-                    resp = openai_client.audio.transcriptions.create(model="whisper-1", file=f_a)
-                transcript = resp.text if resp else ""
-        except Exception as e:
-            logger.error(f"Erro vídeo KB '{source_name}': {e}")
-        finally:
-            if clip:
-                try: clip.close()
-                except: pass
-            for p in [tmp_vid, tmp_aud]:
-                if p and os.path.exists(p):
-                    try: os.remove(p)
-                    except: pass
-        if transcript:
-            self._add_text_to_kb_store(transcript, {"source": source_name, "filename": source_name, "type": "video", "scope": "kb"})
-        return {"transcript": transcript}
-
-    def add_text_kb(self, text: str, source_name: str = "text_kb"):
-        if not text or not text.strip():
-            return
-        self._add_text_to_kb_store(text, {
-            "source": source_name,
-            "filename": source_name,
-            "type": "text",
-            "scope": "kb"
-        })
 
     def add_audio(self, audio_bytes: bytes, source_name: str = "audio_upload", audio_format_suffix: str = ".mp3", openai_client: openai.OpenAI = None) -> str: 
         logger.info(f"Processando áudio: {source_name}, sufixo para temp: {audio_format_suffix}")
@@ -323,9 +138,6 @@ class IngestionHandler:
 
     def add_video(self, video_bytes: bytes, source_name: str = "video_upload", video_format_suffix: str = ".mp4", openai_client: openai.OpenAI = None) -> Dict[str, Any]:
         logger.info(f"Processando vídeo: {source_name}")
-        if not MOVIEPY_AVAILABLE:
-            logger.error("Video processing disabled - moviepy/FFmpeg not installed.")
-            raise ValueError("moviepy not available - install FFmpeg to enable video processing")
         transcript = ""; audio_bytes_ext = None; tmp_vid, tmp_aud = None, None; clip = None
         if not openai_client:
             logger.error("Cliente OpenAI não fornecido para add_video (necessário para add_audio).")

@@ -145,7 +145,7 @@
             <label for="area_atuacao" class="form-label">Área de Atuação</label>
             <select class="form-select" id="area_atuacao" name="area_atuacao">
               <option value="">-- Selecione --</option>
-              <option value="Civil" {% if processo.area_atuacao == 'Civil' %}selected{% endif %}>Civil</option>
+              <option value="Civil" {% if processo.area_atuacao == 'Civil' %}selected{% endif %}>Cível</option>
               <option value="Trabalhista" {% if processo.area_atuacao == 'Trabalhista' %}selected{% endif %}>Trabalhista</option>
               <option value="Penal" {% if processo.area_atuacao == 'Penal' %}selected{% endif %}>Penal</option>
               <option value="Tributario" {% if processo.area_atuacao == 'Tributario' %}selected{% endif %}>Tributário</option>
@@ -169,10 +169,10 @@
             <label for="subfase" class="form-label">Subfase Processual</label>
             <select class="form-select" id="subfase" name="subfase">
               <option value="">-- Selecione --</option>
-              <option value="Inicial" {% if processo.subfase == 'Inicial' %}selected{% endif %}>Inicial</option>
-              <option value="Instrução" {% if processo.subfase == 'Instrução' %}selected{% endif %}>Instrução</option>
-              <option value="Sentenciado" {% if processo.subfase == 'Sentenciado' %}selected{% endif %}>Sentenciado</option>
-              <option value="Recursal" {% if processo.subfase == 'Recursal' %}selected{% endif %}>Recursal</option>
+              <option value="Inicial" {% if processo.subfase == 'Inicial' %}selected{% endif %}>Postulatória</option>
+              <option value="Instrução" {% if processo.subfase == 'Instrução' %}selected{% endif %}>Saneadora</option>
+              <option value="Sentenciado" {% if processo.subfase == 'Sentenciado' %}selected{% endif %}>Instrutória</option>
+              <option value="Recursal" {% if processo.subfase == 'Recursal' %}selected{% endif %}>Decisória</option>
               <option value="Execução" {% if processo.subfase == 'Execução' %}selected{% endif %}>Execução</option>
             </select>
           </div>
@@ -255,7 +255,7 @@
 
     <!-- BOTÕES DE AÇÃO -->
     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-      <a href="/processos/{{ processo.id_processo or '' }}" class="btn btn-outline-secondary">
+      <a href="/processos/painel/{{ processo.id_processo or '' }}" class="btn btn-outline-secondary">
         <i class="bi bi-x-circle"></i> Cancelar
       </a>
       <button type="submit" class="btn btn-primary">

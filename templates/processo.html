@@ -75,27 +75,22 @@
   <div class="row g-5">
     <div class="col-md-5 col-lg-4 order-md-last">
       <h4 class="d-flex justify-content-between align-items-center mb-3">
-        <span class="text-primary">Detalhes do Caso</span>
-      </h4>
-      <h4 class="d-flex justify-content-between align-items-center mb-3 mt-4">
-  <span class="text-primary">Documentos <span class="badge bg-secondary" id="doc-count">{{ documentos|length }}</span></span>
-        <button class="btn btn-sm btn-success"
-                data-bs-toggle="modal" data-bs-target="#uploadModal"
-                hx-get="/processos/ui/{{ processo.id_processo }}/uploadform"
-                hx-target="#uploadModalBody">
-          +
-        </button>
+        <span class="text-primary">Gerenciamento do Caso</span>
       </h4>
       
-      <div id="lista-documentos">
-        {% include '_lista_documentos.html' %}
-      </div>
+
       <hr class="mt-4">
       <div class="mt-3">
-        <h6 class="text-muted">Gerenciamento</h6>
+        
         <a href="/processos/{{ processo.id_processo }}/editar" class="btn btn-outline-warning btn-sm w-100 mb-2">
           <i class="bi bi-pencil-square"></i> Editar Processo
         </a>
+
+        <a
+          href="{{ url_for('processos.documentos_processo', id_processo=processo.id_processo) }}" class="btn btn-outline-success btn-sm w-100 mb-2">
+          <i class="bi bi-file-earmark-text"></i> 📎Documentos do Processo
+        </a>
+
         <a href="/processos/{{ processo.id_processo }}/partes-adversas" class="btn btn-outline-primary btn-sm w-100 mb-2">
           <i class="bi bi-people-fill"></i> Partes Adversas
         </a>
@@ -110,9 +105,11 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-resumo" data-bs-toggle="tab" data-bs-target="#pane-resumo" type="button" role="tab">Resumo</button>
       </li>
+      
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-chat" data-bs-toggle="tab" data-bs-target="#pane-chat" type="button" role="tab">Chat</button>
       </li>
+
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-estrategia" data-bs-toggle="tab" data-bs-target="#pane-estrategia" type="button" role="tab">Análise Estratégica</button>
       </li>
@@ -207,6 +204,7 @@
             <label class="form-label small text-muted">Foco (opcional) para refinar análise</label>
             <input type="text" id="focus-estrategia" class="form-control form-control-sm" placeholder="Ex: risco de sucumbência, acordo, prova pericial">
             <div class="d-flex gap-2 mt-2">
+              
               <button class="btn btn-outline-warning btn-sm"
                       hx-post="/processos/ui/{{ processo.id_processo }}/analise/riscos"
                       hx-vals='js:{focus: document.getElementById("focus-estrategia").value}'

@@ -55,18 +55,32 @@ def _get_kb_pipeline(light: bool = True):
     global _KB_PIPELINE_CACHE
     if _KB_PIPELINE_CACHE is None:
         try:
-            if light:
-                # Inicialização leve: cria Pipeline e desativa componentes pesados não usados no upload
-                p = Pipeline(case_id='kb_dummy')
-                # Libera objetos não necessários para ingestão básica da KB
-                try:
-                    p.llm = None
-                    p.agent_executor = None
-                except Exception:
-                    pass
-                _KB_PIPELINE_CACHE = p
-            else:
-                _KB_PIPELINE_CACHE = Pipeline(case_id='kb_dummy')
+            from ingestion_module import IngestionHandler
+            from pathlib import Path
+            import openai
+            base_cases_dir = Path("./cases")
+            openai_client = openai.OpenAI()
+            ingestion_handler = IngestionHandler(
+                nlp_processor=None,
+                text_splitter=None,
+                label_map=None,
+                case_store=None,
+                kb_store=None
+            )
+            p = Pipeline(
+                case_id='kb_dummy',
+                ingestion_handler=ingestion_handler,
+                openai_client=openai_client,
+                base_cases_dir=base_cases_dir,
+                tenant_id=None
+            )
+            # Libera objetos não necessários para ingestão básica da KB
+            try:
+                p.llm = None
+                p.agent_executor = None
+            except Exception:
+                pass
+            _KB_PIPELINE_CACHE = p
         except Exception as e:
             logger.error(f"Falha ao inicializar Pipeline KB: {e}")
             raise

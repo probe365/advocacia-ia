@@ -1,0 +1,220 @@
+{
+  "query": "ação de indenização por danos morais em contrato bancário",
+  "top_k": 10,
+  "store": "data\\store\\ementas_faiss",
+  "index_path": "data\\store\\ementas_faiss\\index.faiss",
+  "meta_path": "data\\store\\ementas_faiss\\metadados.pkl",
+  "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "results": [
+    {
+      "rank": 1,
+      "score": 1.9186182022094727,
+      "index": 89589,
+      "metadata": {
+        "id": "000914517",
+        "label": "HC",
+        "grupo": "SextaTurma",
+        "orgao": "SEXTA TURMA",
+        "data_decisao": "20250603",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "PENAL E PROCESSO PENAL. HABEAS CORPUS SUBSTITUTIVO DE RECURSO ESPECIAL. DESCABIMENTO. EXISTÊNCIA, ENTRETANTO, DE COAÇÃO ILEGAL MANIFESTA. ROUBO MAJORADO E ESTUPRO. PRESCRIÇÃO DA PRETENSÃO PUNITIVA ESTATAL EM ABSTRATO. RETOMADA DO PROCESSO E DA PRESCRIÇÃO COM A CONSTITUIÇÃO DE ADVOGADO PELO PACIENTE. TRANSCURSO DO PRAZO PRESCRICIONAL DE 20 ANOS, DESDE O RECEBIMENTO DA DENÚNCIA, SEM A SUPERVENIÊNCIA DE ATO INTERRUPTIVO. CUMPRIMENTO DE MANDADO DE PRISÃO PREVENTIVA QUE NÃO INTERROMPE A CONTAGEM DO PRAZO PRESCRICIONAL, POR AUSÊNCIA DE PREVISÃO LEGAL. PRECEDENTE. CONSTRANGIMENTO ILEGAL CONFIGURADO. Ordem concedida nos termos do dispositivo. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da Sexta Turma, por unanimidade, conceder o habeas corpus, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Antonio Saldanha Palheiro, Otávio de Almeida Toledo (Desembargador Convocado do TJSP) e Og Fernandes votaram com o Sr. Ministro Relator. Ausente, justificadamente, o Sr. Ministro Rogerio Schietti Cruz.",
+        "title": "HC"
+      }
+    },
+    {
+      "rank": 2,
+      "score": 2.041050434112549,
+      "index": 57521,
+      "metadata": {
+        "id": "000867099",
+        "label": "AgInt no AgInt nos EDcl no AgInt na ExSusp",
+        "grupo": "SegundaSeção",
+        "orgao": "SEGUNDA SEÇÃO",
+        "data_decisao": "20240305",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "AGRAVO INTERNO NO AGRAVO INTERNO INTERPOSTO CONTRA DESPACHO QUE DETERMINOU O PROCESSAMENTO DO RECURSO EXTRAORDINÁRIO. NOVA ARGUIÇÃO DE SUSPEIÇÃO, AGORA CONTRA ESTE RELATOR, APRESENTADA APÓS A INTERPOSIÇÃO DO SEU RECURSO EXTRAORDINÁRIO, EM MOMENTO PROCESSUAL NO QUAL JÁ EXAURIDA A PRESTAÇÃO JURISDICIONAL DOS ÓRGÃOS JUDICIAIS APONTADOS. DESCABIMENTO. RECURSO CORRETAMENTE NÃO CONHECIDO. EXCEÇÃO DE SUSPEIÇÃO CONTRA ESTE SIGNATÁRIO DEVIDAMENTE AUTUADA EM APARTADO, PROCESSADA E JULGADA (REJEITADA LIMINARMENTE) PELA SEGUNDA SEÇÃO DO STJ . AGRAVO INTERNO IMPROVIDO (E AGRAVO INTERNO CONTRA O DESPACHO DA VICE-PRESIDÊNCIA QUE DETERMINOU A AUTUAÇÃO DA EXCEÇÃO DE SUSPEIÇÃO NÃO CONHECIDO). 1. A insurgência recursal que se volta contra despacho, de mero impulso oficial, o qual determinou, ante o exaurimento da prestação jurisdicional da Segunda Seção do STJ, o processamento do recurso extraordinário, não se afigura passível de conhecimento, ante a absoluta ausência de conteúdo decisório. 2. Especificamente sobre a arguição de suspeição, agora voltada contra este Relator (ou seja, exceção de suspeição na exceção de suspeição), deixou-se assente, de modo expresso, inexistir, naquele momento processual, espaço para qualquer deliberação, simplesmente porque houve o esgotamento da prestação jurisdicional por parte deste Relator, assim como por parte da Segunda Seção do STJ. 2.1 Diante do reconhecido exaurimento da prestação jurisdicional - não havendo se falar, por consectário lógico, em reconhecimento de suspeição por parte deste subscritor -, a Vice-Presidência do STJ determinou a autuação em apartado da Exceção de Suspeição arguida contra este subscritor (Relator da Exceção de Suspeição n. 203/DF, arguida contra a Ministra Nancy Andrighi), nos termos do art. 276, § 1º, do RISTJ, a qual f",
+        "title": "AgInt no AgInt nos EDcl no AgInt na ExSusp"
+      }
+    },
+    {
+      "rank": 3,
+      "score": 2.0732274055480957,
+      "index": 67070,
+      "metadata": {
+        "id": "000882895",
+        "label": "AgInt no REsp",
+        "grupo": "SegundaTurma",
+        "orgao": "SEGUNDA TURMA",
+        "data_decisao": "20240826",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "AGRAVO INTERNO NO RECURSO ESPECIAL. TRIBUTÁRIO. NEGATIVA DE PRESTAÇÃO JURISDICIONAL. NÃO OCORRÊNCIA. SEGURO-GARANTIA. EQUIPARAÇÃO AO DEPÓSITO INTEGRAL PARA SUSPENSÃO DA EXIGIBILIDADE DO CRÉDITO TRIBUTÁRIO. IMPOSSIBILIADADE. PRECEDENTES. RECURSO DESPROVIDO. 1. O acórdão proferido na origem não possui as omissões suscitadas pela parte Recorrente. Ao revés, apresentou, concretamente, os fundamentos que justificaram a sua conclusão. O Julgador não está obrigado a rebater, individualmente, todos os argumentos suscitados pelas partes, sendo suficiente que demonstre, fundamentadamente, as razões do seu convencimento. No caso, existe mero inconformismo da parte recorrente com o resultado do julgado proferido no acórdão recorrido, que lhe foi desfavorável, não havendo ofensa aos arts. 489 e 1022 do Código de Processo Civil. 2. Consoante pacífica jurisprudência desta Corte, o seguro-garantia não é equiparável ao depósito do montante integral para fins de suspensão da exigibilidade do crédito tributário, considerada a taxatividade do art. 151 do Código Tributário Nacional. Precedentes. 3. Agravo interno a que se nega provimento. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da SEGUNDA TURMA do Superior Tribunal de Justiça, em sessão virtual de 20/08/2024 a 26/08/2024, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Francisco Falcão, Mauro Campbell Marques e Afrânio Vilela votaram com o Sr. Ministro Relator. Não participou do julgamento o Sr. Ministro Herman Benjamin. Presidiu o julgamento o Sr. Ministro Afrânio Vilela.",
+        "title": "AgInt no REsp"
+      }
+    },
+    {
+      "rank": 4,
+      "score": 2.0747437477111816,
+      "index": 60229,
+      "metadata": {
+        "id": "000830644",
+        "label": "AgInt no AREsp",
+        "grupo": "SegundaTurma",
+        "orgao": "SEGUNDA TURMA",
+        "data_decisao": "20221109",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "PROCESSUAL CIVIL. MANDADO DE SEGURANÇA COLETIVO IMPETRADO POR ASSOCIAÇÃO. EXTENSÃO DOS EFEITOS DA SEGURANÇA AOS ASSOCIADOS FILIADOS APÓS A IMPETRAÇÃO DO MANDAMUS. POSSIBILIDADE. DESPROVIMENTO DO AGRAVO INTERNO. MANUTENÇÃO DA DECISÃO RECORRIDA. I - Na origem, trata-se de cumprimento de sentença, objetivando que seja reconhecido o direito para fins de execução de créditos de natureza alimentar. Na sentença, julgou-se extinta a ação sem resolução do mérito. No Tribunal a quo, a sentença foi parcialmente reformada. II - Na hipótese, o Tribunal a quo consignou: \"Não comprovado que fosse associado ao tempo do ajuizamento do mandado de segurança coletivo, em agosto de 2008, tampouco que o seja, não foi contemplado pelo título judicial, carecendo por isso de legitimidade para a execução.\" III - Assim, verifica-se que o acórdão está em confronto com a jurisprudência desta Corte que é no sentido de que não se exige que o associado seja associado ao tempo da propositura do mandado de segurança coletivo para que possa ser beneficiado pela decisão. Nesse sentido: AgInt no REsp n. 1.890.382/SC, relator Ministro Manoel Erhardt (Desembargador Convocado do TRF5), Primeira Turma, julgado em 30/5/2022, DJe de 1/6/2022.) IV - Agravo interno improvido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da SEGUNDA TURMA do Superior Tribunal de Justiça, em sessão virtual de 03/11/2022 a 09/11/2022, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros Humberto Martins, Herman Benjamin, Mauro Campbell Marques e Assusete Magalhães votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro Mauro Campbell Marques.",
+        "title": "AgInt no AREsp"
+      }
+    },
+    {
+      "rank": 5,
+      "score": 2.096035957336426,
+      "index": 15127,
+      "metadata": {
+        "id": "000919926",
+        "label": "AgInt no AREsp",
+        "grupo": "PrimeiraTurma",
+        "orgao": "PRIMEIRA TURMA",
+        "data_decisao": "20250812",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "ADMINISTRATIVO E PROCESSUAL CIVIL. AGRAVO INTERNO. DESAPROPRIAÇÃO. UTILIDADE PÚBLICA. JUSTO VALOR DO IMÓVEL AFERIDO NO LAUDO PRELIMINAR. DESCONSIDERADO O MONTANTE APURADO NA PERÍCIA DEFINITIVA. POSSIBILIDADE. PERSUAÇÃO RACIONAL. EXACERBADA VALORIZAÇÃO DO BEM ENTRE A ELABORAÇÃO DAS DUAS AVALIAÇÕES OFICIAIS. ENRIQUECIMENTO SEM CAUSA DO EXPROPRIADO. REEXAME DE MATÉRIA FÁTICA. IMPOSSIBILIDADE. SÚMULA 7/STJ. HONORÁRIOS ADVOCATÍCIOS. BASE DE CÁLCULO. ENUNCIADO 131/STJ. 1. Em regra, nas demandas expropriatórias, o valor da indenização deve ser contemporâneo à avaliação do perito judicial. Excepcionalmente, porém, a jurisprudência do STJ tem admitido a mitigação dessa diretriz quando, em virtude do longo período de tempo havido entre a imissão na posse e a data da realização da perícia ou da exacerbada valorização do imóvel, o montante da indenização possa acarretar o enriquecimento sem causa do proprietário expropriado. 2. No caso concreto, a Corte estadual consignou que \"conforme afirmado pelo perito do juízo, que as diferenças apontadas entre os dois laudos oficiais decorreram do elevado aquecimento imobiliário de Belo Horizonte nos três anos subsequentes à apresentação do laudo oficial preliminar e em razão da elevação do preço de materiais e mão de obra, é de se prevalecer os valores apontados no referido laudo oficial, devidamente corrigidos\" (fl. 1.317). 3. Nesse contexto, a alteração das premissas adotadas pela Corte de origem, tal como colocada a questão nas razões recursais, a fim de aferir qual laudo pericial reflete, com mais propriedade, a justa indenização devida à parte agravante, demandaria, necessariamente, novo exame do acervo fático-probatório constante dos autos, providência vedada em recurso especial, conforme o óbice previsto na Súmula 7/STJ. 4. No tocante",
+        "title": "AgInt no AREsp"
+      }
+    },
+    {
+      "rank": 6,
+      "score": 2.1071321964263916,
+      "index": 27280,
+      "metadata": {
+        "id": "000905312",
+        "label": "AgInt no AREsp",
+        "grupo": "QuartaTurma",
+        "orgao": "QUARTA TURMA",
+        "data_decisao": "20250317",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL - AÇÃO DE REVISÃO DE BENEFÍCIO PREVIDENCIÁRIO COMPLEMENTAR - DECISÃO MONOCRÁTICA QUE CONHECEU DO RECLAMO E DEU PARCIAL PROVIMENTO AO APELO NOBRE. INSURGÊNCIA DO DEMANDADA. 1. Nos termos da jurisprudência deste STJ, havendo sucumbência recíproca, os honorários impostos a cada parte devem ser arbitrados sobre a parcela de efetivo decaimento. 2. Em se tratando de verba honorária regida pelo CPC/73, autoriza-se a compensação dos honorários, na forma da Súmula 306/STJ. 3. Agravo interno parcialmente provido, para autorizar a compensação dos honorários. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em Sessão Virtual de 11/03/2025 a 17/03/2025, por unanimidade, dar parcial provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros João Otávio de Noronha, Raul Araújo, Maria Isabel Gallotti e Antonio Carlos Ferreira votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro João Otávio de Noronha. Brasília, 19 de março de 2025. Ministro Marco Buzzi Relator AgInt no AGRAVO EM RECURSO ESPECIAL Nº 831848 - MG (2015/0318176-0) RELATOR : MINISTRO MARCO BUZZI AGRAVANTE : CAIXA DE PREVIDENCIA DOS FUNCIONARIOS DO BANCO DO BRASIL - PREVI ADVOGADOS : DENISE MARIA FREIRE REIS MUNDIM - MG040999 LUIS GUSTAVO REIS MUNDIM - MG157259 AGRAVADO : LUCIANA RESENDE BICAS DE MESQUITA AGRAVADO : MARIA DO CARMO DE RESENDE BICAS ADVOGADO : WLADIMIR ECHEVERRIA MESKELIS - MG077905 INTERES. : BANCO DO BRASIL SA EMENTA AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL - AÇÃO DE REVISÃO DE BENEFÍCIO PREVIDENCIÁRIO COMPLEMENTAR - DECISÃO MONOCRÁTICA QUE CONHECEU DO RECLAMO E DEU PARCIAL PROVIMENTO AO APELO NOBRE. INSURGÊNCIA DO DEMANDADA. ",
+        "title": "AgInt no AREsp"
+      }
+    },
+    {
+      "rank": 7,
+      "score": 2.117382526397705,
+      "index": 22862,
+      "metadata": {
+        "id": "000867952",
+        "label": "AgInt no AREsp",
+        "grupo": "QuartaTurma",
+        "orgao": "QUARTA TURMA",
+        "data_decisao": "20240304",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL - AÇÃO DE BUSCA EM APREENSÃO - DECISÃO MONOCRÁTICA QUE NEGOU PROVIMENTO AO RECLAMO - INSURGÊNCIA RECURSAL DO AUTOR .1. Não comprovada a mora, conforme súmula 72/STJ, não há falar em deferimento da medida liminar de busca e apreensão, notadamente quando o aviso de recebimento enviado retorna com a informação \"não procurado\". Precedentes.2. Agravo interno desprovido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em sessão virtual de 27/02/2024 a 04/03/2024, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros João Otávio de Noronha, Raul Araújo, Maria Isabel Gallotti e Antonio Carlos Ferreira votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro Raul Araújo.",
+        "title": "AgInt no AREsp"
+      }
+    },
+    {
+      "rank": 8,
+      "score": 2.1195578575134277,
+      "index": 28006,
+      "metadata": {
+        "id": "000913533",
+        "label": "AgInt no AREsp",
+        "grupo": "QuartaTurma",
+        "orgao": "QUARTA TURMA",
+        "data_decisao": "20250526",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "AGRAVO INTERNO NO AGRAVO EM RECURSO ESPECIAL - AUTOS DE AGRAVO DE INSTRUMENTO NA ORIGEM - DECISÃO MONOCRÁTICA QUE CONHECEU DO AGRAVO PARA NEGAR PROVIMENTO AO RECURSO ESPECIAL. INSURGÊNCIA DA PARTE AGRAVANTE. 1. Nos termos da jurisprudência desta Corte Superior, o reconhecimento da prescrição intercorrente exige a comprovação da inércia e desídia do exequente, o que não se verificou na espécie. Incidência da Súmula 83 do STJ. 1.1. Para rediscutir se houve, ou não, desídia da parte exequente seria necessário o revolvimento das provas dos autos, o que é inviável em sede de recurso especial, a teor do que dispõe a Súmula 7 do STJ. 2. A Lei n. 14,195/2021, que alterou o termo inicial da prescrição intercorrente (art. 921, § 4º, do CPC/2015), é irretroativa e somente se aplica a partir de sua publicação. Precedente. 3. Agravo interno desprovido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da QUARTA TURMA do Superior Tribunal de Justiça, em Sessão Virtual de 20/05/2025 a 26/05/2025, por unanimidade, negar provimento ao recurso, nos termos do voto do Sr. Ministro Relator. Os Srs. Ministros João Otávio de Noronha, Raul Araújo, Maria Isabel Gallotti e Antonio Carlos Ferreira votaram com o Sr. Ministro Relator. Presidiu o julgamento o Sr. Ministro João Otávio de Noronha.",
+        "title": "AgInt no AREsp"
+      }
+    },
+    {
+      "rank": 9,
+      "score": 2.1329185962677,
+      "index": 11733,
+      "metadata": {
+        "id": "000873551",
+        "label": "REsp",
+        "grupo": "PrimeiraTurma",
+        "orgao": "SEGUNDA TURMA",
+        "data_decisao": "20240514",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "TRIBUTÁRIO E PROCESSUAL CIVIL. RECURSO ESPECIAL. INTERPOSIÇÃO CONTRA ACÓRDÃO DO TRIBUNAL DE ORIGEM QUE NEGOU PROVIMENTO AO AGRAVO INTERNO, MANTENDO A NEGATIVA DE SEGUIMENTO A RECURSO EXTRAORDINÁRIO. NÃO CABIMENTO. RECURSO ESPECIAL NÃO CONHECIDO. 1. O agravo interno é o único recurso cabível contra a decisão que nega seguimento aos recursos especial e extraordinário, em razão de o acórdão recorrido estar em conformidade com tese fixada sob a sistemática dos recursos repetitivos ou da repercussão geral. Assim, mostra-se inadmissível a interposição de recurso especial contra o acórdão do Tribunal de origem que, ao negar provimento ao agravo interno, mantém a negativa de seguimento ao recurso extraordinário, com base no art. 1.030, I, do CPC/2015. 2. Recurso especial não conhecido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da Turma, por unanimidade, não conhecer do recurso, nos termos do voto do Sr. Ministro-Relator. Os Srs. Ministros Francisco Falcão, Herman Benjamin, Mauro Campbell Marques e Teodoro Silva Santos votaram com o Sr. Ministro Relator.",
+        "title": "REsp"
+      }
+    },
+    {
+      "rank": 10,
+      "score": 2.1329185962677,
+      "index": 65415,
+      "metadata": {
+        "id": "000873551",
+        "label": "REsp",
+        "grupo": "SegundaTurma",
+        "orgao": "SEGUNDA TURMA",
+        "data_decisao": "20240514",
+        "classe": "",
+        "secao": "",
+        "turma": "",
+        "relator": "",
+        "numero_processo": "",
+        "assunto": "",
+        "unidade_federativa": "",
+        "text_excerpt": "TRIBUTÁRIO E PROCESSUAL CIVIL. RECURSO ESPECIAL. INTERPOSIÇÃO CONTRA ACÓRDÃO DO TRIBUNAL DE ORIGEM QUE NEGOU PROVIMENTO AO AGRAVO INTERNO, MANTENDO A NEGATIVA DE SEGUIMENTO A RECURSO EXTRAORDINÁRIO. NÃO CABIMENTO. RECURSO ESPECIAL NÃO CONHECIDO. 1. O agravo interno é o único recurso cabível contra a decisão que nega seguimento aos recursos especial e extraordinário, em razão de o acórdão recorrido estar em conformidade com tese fixada sob a sistemática dos recursos repetitivos ou da repercussão geral. Assim, mostra-se inadmissível a interposição de recurso especial contra o acórdão do Tribunal de origem que, ao negar provimento ao agravo interno, mantém a negativa de seguimento ao recurso extraordinário, com base no art. 1.030, I, do CPC/2015. 2. Recurso especial não conhecido. Vistos e relatados estes autos em que são partes as acima indicadas, acordam os Ministros da Turma, por unanimidade, não conhecer do recurso, nos termos do voto do Sr. Ministro-Relator. Os Srs. Ministros Francisco Falcão, Herman Benjamin, Mauro Campbell Marques e Teodoro Silva Santos votaram com o Sr. Ministro Relator.",
+        "title": "REsp"
+      }
+    }
+  ]
+}

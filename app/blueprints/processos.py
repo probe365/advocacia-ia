@@ -1,11 +1,20 @@
-from flask import Blueprint, jsonify, request, render_template, flash, redirect, url_for, send_from_directory, send_file, session, g
-from flask_login import login_required
+# from flask import Blueprint, jsonify, request, render_template, flash, redirect, url_for, send_from_directory, send_file, session, g
+from flask_login import login_required, current_user
 from app.services.cadastro_service import CadastroService
 from cadastro_manager import CadastroManager
 from pipeline import Pipeline
 from werkzeug.utils import secure_filename
 import os, hashlib, logging, base64
 import re
+
+from flask import (
+    Blueprint, render_template, request, redirect, url_for,
+    flash, current_app, send_file, abort, g, session, jsonify
+)
+
+from mimetypes import guess_type
+from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 
@@ -278,7 +287,29 @@ def painel_processo(id_processo):
     except Exception:
         advogado = None
     # Docs & pipeline context could be loaded here
-    pipeline = Pipeline(case_id=id_processo)
+    from pathlib import Path
+    import openai
+    from ingestion_module import IngestionHandler
+    # Inicialização dos componentes obrigatórios
+    base_cases_dir = Path("./cases")
+    openai_client = openai.OpenAI()
+    # Para inicializar o IngestionHandler, é necessário obter os argumentos corretos
+    # Estes argumentos normalmente são: nlp_processor, text_splitter, label_map, case_store, kb_store
+    # Como exemplo, inicialize com None ou valores padrão se não tiver contexto suficiente
+    ingestion_handler = IngestionHandler(
+        nlp_processor=None,
+        text_splitter=None,
+        label_map=None,
+        case_store=None,
+        kb_store=None
+    )
+    pipeline = Pipeline(
+        case_id=id_processo,
+        ingestion_handler=ingestion_handler,
+        openai_client=openai_client,
+        base_cases_dir=base_cases_dir,
+        tenant_id=getattr(g, 'tenant_id', None)
+    )
     documentos = pipeline.list_unique_case_documents()
     chat_history = session.get(f'chat_history_{id_processo}', [])
     # Código curto estável para identificação visual (caso_<8 hex>)
@@ -367,7 +398,26 @@ def ui_upload_form(id_processo):
 @processos_bp.route('/ui/<id_processo>/resumo', methods=['POST'])
 def ui_resumo(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or request.values.get('focus') or '').strip()
         resumo, from_cache = pipeline.summarize_with_cache(focus or 'Resumo geral do caso')
         if not resumo or resumo.startswith("Sem conteúdo"):
@@ -412,7 +462,26 @@ def ui_resumo(id_processo):
 @processos_bp.route('/ui/<id_processo>/export/resumo', methods=['POST'])
 def ui_export_resumo(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         resumo = pipeline.summarize(query_for_relevance=focus or 'Resumo geral do caso')
         code = _compute_case_code(id_processo)
@@ -427,7 +496,26 @@ def ui_export_resumo(id_processo):
 @processos_bp.route('/ui/<id_processo>/export/resumo/pdf', methods=['POST'])
 def ui_export_resumo_pdf(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         resumo = pipeline.summarize(query_for_relevance=focus or 'Resumo geral do caso')
         code = _compute_case_code(id_processo)
@@ -484,7 +572,26 @@ def ui_export_resumo_pdf(id_processo):
 def ui_download_export(id_processo, filename):
     """Serve arquivos de export (PDF/TXT) com diagnóstico detalhado em caso de falha."""
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         export_dir = pipeline.case_dir / 'exports'
         if not export_dir.exists():
             logger.error('export_dir inexistente', extra={'case_id': id_processo, 'path': str(export_dir)})
@@ -509,7 +616,26 @@ def ui_download_export(id_processo, filename):
 @processos_bp.route('/ui/<id_processo>/analise/firac', methods=['POST'])
 def ui_analise_firac(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         result = pipeline.generate_firac(focus=focus)
         if result.get('data'):
@@ -534,7 +660,26 @@ def ui_analise_firac(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/firac/export/pdf', methods=['POST'])
 def ui_export_firac_pdf(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         result = pipeline.generate_firac(focus=focus)
         data = result.get('data')
@@ -675,7 +820,26 @@ def ui_peticao_form(id_processo):
 def ui_peticao_gerar(id_processo):
     """Gera rascunho de petição inicial usando FIRAC + inputs. Retorna bloco HTML com texto e export options."""
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         proc = service.get_processo(id_processo) or {}
         cliente = service.get_cliente(proc.get('id_cliente')) if proc.get('id_cliente') else None
         advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
@@ -769,7 +933,26 @@ def ui_peticao_gerar(id_processo):
 @processos_bp.route('/ui/<id_processo>/peticao/export/pdf', methods=['GET'])
 def ui_peticao_export_pdf(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         proc = service.get_processo(id_processo) or {}
         cliente = service.get_cliente(proc.get('id_cliente')) if proc.get('id_cliente') else None
         advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
@@ -846,7 +1029,26 @@ def ui_peticao_export_docx(id_processo):
             from docx import Document
         except ImportError:
             return "<div class='text-danger'>Dependência 'python-docx' não instalada. Instale para exportar DOCX: pip install python-docx</div>"
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         proc = service.get_processo(id_processo) or {}
         cliente = service.get_cliente(proc.get('id_cliente')) if proc.get('id_cliente') else None
         advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
@@ -910,7 +1112,26 @@ def ui_peticao_export_docx(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/riscos', methods=['POST'])
 def ui_analise_riscos(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         txt = pipeline.identify_legal_risks(focus=focus)
         return f"<pre style='white-space:pre-wrap;font-size:0.85rem;'>{txt}</pre>"
@@ -920,86 +1141,383 @@ def ui_analise_riscos(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/proximos_passos', methods=['POST'])
 def ui_analise_proximos_passos(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=getattr(g, 'tenant_id', None)
+        )
+
         focus = (request.form.get('focus') or '').strip()
         txt = pipeline.suggest_next_steps(focus=focus)
         return f"<pre style='white-space:pre-wrap;font-size:0.85rem;'>{txt}</pre>"
     except Exception as e:
         return f"<div class='alert alert-danger'>Erro próximos passos: {e}</div>", 500
 
+
+
+@processos_bp.route('/<id_processo>/documentos', methods=['GET'])
+@login_required
+def documentos_processo(id_processo):
+    """Página dedicada para gerenciar documentos do processo."""
+    try:
+        processo = service.get_processo(id_processo)
+        if not processo:
+            flash('Processo não encontrado', 'danger')
+            return redirect(url_for('clientes.list_clientes_ui'))
+
+        tenant_id = getattr(g, 'tenant_id', None)
+
+        # ⚠️ Aqui usamos o Pipeline "leve" apenas para listar documentos
+        pipeline = Pipeline(
+            case_id=id_processo,
+            tenant_id=tenant_id
+        )
+
+        documentos = pipeline.list_unique_case_documents()
+
+        return render_template(
+            'documentos_processo.html',
+            processo=processo,
+            documentos=documentos,
+            id_processo=id_processo,
+        )
+    except Exception as e:
+        logger.error(f"Erro ao carregar página de documentos: {e}", exc_info=True)
+        flash(f'Erro ao carregar documentos do processo: {e}', 'danger')
+        return redirect(url_for('processos.painel_processo', id_processo=id_processo))
+
 # ----------------- Documentos (upload/delete) -----------------
 
 @processos_bp.route('/ui/<id_processo>/documentos/novo', methods=['POST'])
 def ui_upload_documento(id_processo):
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        tenant_id = getattr(g, 'tenant_id', None)
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=tenant_id
+        )
+
         f = request.files.get('file')
-        if not f:
+        if not f or f.filename == '':
             return "<div class='alert alert-danger mt-2'>Arquivo não enviado.</div>"
+
         filename = secure_filename(f.filename)
         content = f.read()
         ext = os.path.splitext(filename)[1].lower()
-        added_type = None
-        ocr_info = ''
-        # Salva cópia física para possibilitar preview (ex: imagens)
+
+        # 1) Salvar SEMPRE uma cópia para PREVIEW em /uploads
         try:
             uploads_dir = pipeline.case_dir / 'uploads'
             uploads_dir.mkdir(parents=True, exist_ok=True)
             with open(uploads_dir / filename, 'wb') as out_f:
                 out_f.write(content)
         except Exception as fs_e:
-            flash(f"Falha ao salvar arquivo para preview: {fs_e}", 'warning')
-        if ext == '.pdf':
-            txt = pipeline.ingestion_handler.add_pdf(content, source_name=filename)
-            if not txt: ocr_info = " (sem texto extraível)"
-            added_type = 'pdf'
-        elif ext in ['.jpg', '.jpeg', '.png']:
-            txt = pipeline.ingestion_handler.add_image(content, source_name=filename)
-            if not txt: ocr_info = " (OCR vazio; placeholder adicionado)"
-            added_type = 'image'
-        elif ext == '.txt':
-            # Suporte a texto simples
-            try:
-                try:
-                    text_decoded = content.decode('utf-8')
-                except UnicodeDecodeError:
-                    text_decoded = content.decode('latin-1')
-                if not text_decoded.strip():
-                    return "<div class='alert alert-warning mt-2'>Arquivo .txt vazio.</div>"
-                pipeline.ingestion_handler.add_text_direct(text_decoded, source_name=filename, metadata_override={"type": "text"})
-                added_type = 'text'
-            except Exception as de:
-                return f"<div class='alert alert-danger mt-2'>Falha ao ler TXT: {de}</div>"
-        elif ext in ['.mp3', '.wav']:
-            pipeline.ingestion_handler.add_audio(content, source_name=filename, audio_format_suffix=ext, openai_client=pipeline.openai_client)
-            added_type = 'audio'
-        elif ext in ['.mp4', '.mov']:
-            pipeline.ingestion_handler.add_video(content, source_name=filename, video_format_suffix=ext, openai_client=pipeline.openai_client)
-            added_type = 'video'
+            logger.warning(f"Falha ao salvar arquivo para preview: {fs_e}")
+
+        # 2) Descobrir id_cliente a partir do processo (para gravar na tabela documentos)
+        proc = service.get_processo(id_processo) or {}
+        id_cliente = proc.get("id_cliente")
+
+        # 3) Usuário autenticado → criado_por_id (se existir)
+        criado_por_id = getattr(current_user, "id", None)
+
+        # 4) Tipos suportados que entram na TABELA documentos
+        SUPORTADOS_DOCUMENTOS = [
+            ".pdf", ".txt",
+            ".jpg", ".jpeg", ".png",
+            ".mp3", ".wav",
+            ".mp4", ".mov",
+        ]
+
+        resultado = None
+        added_type = None
+
+        if ext in SUPORTADOS_DOCUMENTOS:
+            # Delega ingestão + criação do registro em `documentos`
+            resultado = pipeline.processar_upload_de_arquivo(
+                id_processo=id_processo,
+                nome_arquivo=filename,
+                conteudo_arquivo_bytes=content,
+                id_cliente=id_cliente,
+                criado_por_id=criado_por_id,
+                storage_backend="local",   # usa pasta /cases/<tenant>/<id>/uploads
+            )
+
+            # só para log / mensagem amigável
+            added_type = {
+                ".pdf": "pdf",
+                ".txt": "text",
+                ".jpg": "image",
+                ".jpeg": "image",
+                ".png": "image",
+                ".mp3": "audio",
+                ".wav": "audio",
+                ".mp4": "video",
+                ".mov": "video",
+            }.get(ext, "file")
+
+            if resultado.get("status") == "erro":
+                return (
+                    f"<div class='alert alert-danger mt-2'>Erro ao processar arquivo: "
+                    f"{resultado.get('mensagem')}</div>"
+                )
+
         else:
-            return f"<div class='alert alert-warning mt-2'>Tipo de arquivo não suportado: {ext}</div>"
+            # Qualquer outra extensão → ainda não suportada
+            return (
+                f"<div class='alert alert-warning mt-2'>Tipo de arquivo não suportado: {ext}</div>"
+            )
+
+        # 5) Recarregar lista de documentos do caso (já traz texto/pdf/imagem/áudio/vídeo)
         documentos = pipeline.list_unique_case_documents()
-        lista_html = render_template('_lista_documentos.html', documentos=documentos)
-        msg = f"<div class='alert alert-success mb-2 p-2'>Arquivo '{filename}' ({added_type}) processado{ocr_info}.</div>"
+        lista_html = render_template("_lista_documentos.html", documentos=documentos)
+
+        base_msg = (
+            resultado.get("mensagem")
+            if resultado
+            else f"Arquivo '{filename}' ({added_type}) processado com sucesso."
+        )
+
+        msg = (
+            f"<div class='alert alert-success mb-2 p-2'>"
+            f"{base_msg}</div>"
+        )
+
         response_html = msg + lista_html
-        # Fecha modal e atualiza contagem via evento custom
-        response_headers = {'HX-Trigger': 'fecharUploadModal'}
+        response_headers = {"HX-Trigger": "fecharUploadModal"}
+
         try:
-            logger.info('upload_documento', extra={'case_id': id_processo, 'case_code': _short_case_code(id_processo), 'filename': filename, 'type': added_type})
+            logger.info(
+                "upload_documento",
+                extra={
+                    "case_id": id_processo,
+                    "case_code": _short_case_code(id_processo),
+                    "filename": filename,
+                    "type": added_type,
+                },
+            )
         except Exception:
             pass
+
         return response_html, 200, response_headers
+
     except Exception as e:
+        logger.exception("Erro no upload de documento")
         return f"<div class='alert alert-danger mt-2'>Erro no upload: {e}</div>", 500
+
+
+from pathlib import Path
+import html
+
+from pathlib import Path
+
+@processos_bp.route('/ui/<id_processo>/documentos/preview/<path:filename>', methods=['GET'])
+@login_required
+def ui_preview_documento(id_processo, filename):
+    """
+    Mostra preview inline do documento:
+    - txt: mostra texto (primeiros ~8k chars)
+    - pdf: iframe embed
+    - image: tag <img>
+    - audio: mini-player <audio controls>
+    - video: mini-player <video controls>
+    """
+    try:
+        tenant_id = getattr(g, 'tenant_id', None) or "default"
+        from pathlib import Path
+        import openai
+        from ingestion_module import IngestionHandler
+        base_cases_dir = Path("./cases")
+        openai_client = openai.OpenAI()
+        ingestion_handler = IngestionHandler(
+            nlp_processor=None,
+            text_splitter=None,
+            label_map=None,
+            case_store=None,
+            kb_store=None
+        )
+        pipeline = Pipeline(
+            case_id=id_processo,
+            ingestion_handler=ingestion_handler,
+            openai_client=openai_client,
+            base_cases_dir=base_cases_dir,
+            tenant_id=tenant_id
+        )
+
+        uploads_dir = pipeline.case_dir / 'uploads'
+        target = uploads_dir / filename
+
+        if not target.exists():
+            return f"<div class='alert alert-warning mt-2'>Arquivo não encontrado para preview: {filename}</div>"
+
+        ext = target.suffix.lower()
+
+        # URL pública já existente para servir o arquivo
+        file_url = url_for(
+            'processos.ui_arquivo',
+            id_processo=id_processo,
+            nome_arquivo=f"uploads/{filename}",  # 🔥 aponta para subpasta uploads
+            _external=False,
+        )
+
+
+        # ---- TXT: mostra conteúdo em <pre> ----
+        if ext == ".txt":
+            try:
+                with open(target, 'r', encoding='utf-8', errors='ignore') as f:
+                    text = f.read(8000)  # limita preview
+            except Exception as e:
+                return f"<div class='alert alert-danger mt-2'>Erro ao ler arquivo: {e}</div>"
+
+            return f"""
+            <div class='card mt-4'>
+              <div class='card-header'>Preview do Texto</div>
+              <div class='card-body' style='max-height:50vh;overflow:auto;'>
+                <pre style='white-space:pre-wrap;font-size:0.85rem;'>{text}</pre>
+              </div>
+            </div>
+            """
+
+        # ---- PDF: iframe embed ----
+        if ext == ".pdf":
+            return f"""
+            <div class='card mt-4'>
+              <div class='card-header d-flex justify-content-between align-items-center'>
+                <span>Preview do PDF</span>
+                <a href="{file_url}" target="_blank" class="btn btn-sm btn-outline-secondary">Abrir em nova aba</a>
+              </div>
+              <div class='card-body' style='height:70vh;'>
+                <iframe src="{file_url}" style="width:100%;height:100%;border:none;"></iframe>
+              </div>
+            </div>
+            """
+
+        # ---- IMAGEM: <img> ----
+        if ext in [".jpg", ".jpeg", ".png"]:
+            return f"""
+            <div class='card mt-4'>
+              <div class='card-header d-flex justify-content-between align-items-center'>
+                <span>Preview da Imagem</span>
+                <a href="{file_url}" target="_blank" class="btn btn-sm btn-outline-secondary">Abrir em nova aba</a>
+              </div>
+              <div class='card-body text-center'>
+                <img src="{file_url}" alt="{filename}"
+                     style="max-width:100%;max-height:70vh;border-radius:4px;object-fit:contain;">
+              </div>
+            </div>
+            """
+
+        # ---- ÁUDIO: mini-player ----
+        if ext in [".mp3", ".wav"]:
+            return f"""
+            <div class='card mt-4'>
+              <div class='card-header d-flex justify-content-between align-items-center'>
+                <span>Preview de Áudio</span>
+                <a href="{file_url}" target="_blank" class="btn btn-sm btn-outline-secondary">Baixar / Abrir</a>
+              </div>
+              <div class='card-body'>
+                <audio controls style="width:100%;">
+                  <source src="{file_url}">
+                  Seu navegador não suporta o elemento de áudio.
+                </audio>
+                <small class="text-muted d-block mt-2">{filename}</small>
+              </div>
+            </div>
+            """
+
+        # ---- VÍDEO: mini-player ----
+        if ext in [".mp4", ".mov"]:
+            return f"""
+            <div class='card mt-4'>
+              <div class='card-header d-flex justify-content-between align-items-center'>
+                <span>Preview de Vídeo</span>
+                <a href="{file_url}" target="_blank" class="btn btn-sm btn-outline-secondary">Abrir em nova aba</a>
+              </div>
+              <div class='card-body text-center'>
+                <video controls style="max-width:100%;max-height:70vh;">
+                  <source src="{file_url}">
+                  Seu navegador não suporta o elemento de vídeo.
+                </video>
+                <small class="text-muted d-block mt-2">{filename}</small>
+              </div>
+            </div>
+            """
+
+        # ---- Fallback genérico ----
+        return f"""
+        <div class='card mt-4'>
+          <div class='card-header'>Preview não disponível para este tipo de arquivo ({ext})</div>
+          <div class='card-body'>
+            <a href="{file_url}" target="_blank" class="btn btn-sm btn-outline-secondary">Baixar / Abrir</a>
+          </div>
+        </div>
+        """
+
+    except Exception as e:
+        logger.exception("Erro no preview de documento")
+        return f"<div class='alert alert-danger mt-2'>Erro no preview: {e}</div>"
 
 @processos_bp.route('/ui/<id_processo>/documentos/<filename>', methods=['DELETE'])
 def ui_delete_documento(id_processo, filename):
     try:
-        pipeline = Pipeline(case_id=id_processo)
-        ok = pipeline.delete_document_by_filename(filename)
+        tenant_id = getattr(g, 'tenant_id', None)
+
+        # 🔥 Normalizar ID do processo para bater com o PostgreSQL
+        proc_id_db = id_processo
+        if not proc_id_db.startswith("caso_"):
+            proc_id_db = f"caso_{proc_id_db}"
+
+        pipeline = Pipeline(case_id=id_processo, tenant_id=tenant_id)
+
+        # 1) Apagar do filesystem / vetor
+        ok_fs = pipeline.delete_document_by_filename(filename)
+
+        # 2) Apagar da tabela documentos
+        from cadastro_manager import CadastroManager
+        mgr = CadastroManager(tenant_id=tenant_id)
+
+        ok_db = mgr.delete_documento_by_filename(proc_id_db, filename)
+
+        # 3) Recarregar tabela no front
         documentos = pipeline.list_unique_case_documents()
+
+        # 👇 APENAS PARA DEBUG, OPCIONAL
+        for d in documentos:
+            logger.info(f"[DOC DEBUG] {d}")
+
         html = render_template('_lista_documentos.html', documentos=documentos)
-        return html if ok else ("<div class='alert alert-danger mt-2'>Falha ao remover.</div>", 500)
+
+        return html, 200
+
     except Exception as e:
         return f"<div class='alert alert-danger mt-2'>Erro ao deletar: {e}</div>", 500
 
@@ -1010,7 +1528,8 @@ def ui_chat(id_processo):
     Evita 415 Unsupported Media Type aceitando form-urlencoded ou multipart.
     """
     try:
-        pipeline = Pipeline(case_id=id_processo)
+        pipeline = Pipeline(case_id=id_processo, tenant_id=getattr(g, 'tenant_id', None))
+
         query = (request.form.get('query') or '').strip()
         scope = (request.form.get('scope') or 'case').lower()
         if not query:
@@ -1043,21 +1562,59 @@ def ui_chat_clear(id_processo):
     except Exception as e:
         return f"<div class='alert alert-danger p-2 m-2'>Erro ao limpar chat: {e}</div>", 500
 
-@processos_bp.route('/ui/<id_processo>/arquivo/<path:filename>', methods=['GET'])
-def ui_serve_uploaded_file(id_processo, filename):
-    """Serve arquivos salvos do caso (imagens para preview)."""
-    # Evita custo de recriar pipeline completo apenas para servir arquivo
+
+from pathlib import Path
+
+from flask import send_file, abort, current_app, g
+from mimetypes import guess_type
+from pathlib import Path
+from cadastro_manager import CadastroManager
+
+
+from flask import send_file, abort, Response, current_app
+
+@processos_bp.route("/ui/<id_processo>/arquivo/<path:nome_arquivo>")
+@login_required
+def ui_arquivo(id_processo, nome_arquivo):
+    """
+    Serve um arquivo de um caso:
+    - Usa a MESMA raiz de cases que o Pipeline (./cases na raiz do projeto)
+    - Considera multi-tenant (tenant_id no caminho)
+    - nome_arquivo pode ser só "arquivo.pdf" ou "uploads/arquivo.pdf"
+    """
     from pathlib import Path
-    uploads_dir = Path('./cases') / id_processo / 'uploads'
-    target = uploads_dir / filename
-    if not target.exists():
-        return "Arquivo não encontrado", 404
-    # Segurança básica: garantir que o arquivo está dentro do diretório
+
+    tenant = getattr(g, "tenant_id", "public")
+
+    # Raiz do projeto: ...\advocacia-ia-app
+    project_root = Path(current_app.root_path).parent
+
+    # Mesma pasta base usada pelo Pipeline: "./cases"
+    base_dir = project_root / "cases"
+
+    # Se o tenant já estiver no path (ex: cases/public), não duplica
+    if tenant in base_dir.parts:
+        root = base_dir
+    else:
+        root = base_dir / tenant
+
+    # nome_arquivo já pode vir com "uploads/arquivo.pdf"
+    caminho = root / id_processo / nome_arquivo
+
+    current_app.logger.info(
+        f"[ui_arquivo] Tentando servir arquivo para tenant={tenant}, "
+        f"caso={id_processo}, arquivo={nome_arquivo} em: {caminho}"
+    )
+
+    if not caminho.exists():
+        current_app.logger.error(f"[ui_arquivo] Arquivo não encontrado em: {caminho}")
+        return f"Erro ao servir arquivo: 404 Not Found: Arquivo não encontrado", 404
+
     try:
-        resp = send_from_directory(uploads_dir, filename)
-        resp.headers['Cache-Control'] = 'max-age=300'
-        return resp
+        # deixa o mimetype a cargo do Flask / sistema
+        return send_file(str(caminho), as_attachment=False)
     except Exception as e:
+        current_app.logger.exception("[ui_arquivo] Falha ao enviar arquivo")
         return f"Erro ao servir arquivo: {e}", 500
 
 # ============================================================

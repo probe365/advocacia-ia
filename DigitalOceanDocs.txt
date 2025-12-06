@@ -1,0 +1,275 @@
+You are running `psql` as the `postgres` Linux user, but you are still being asked for a password and getting an authentication error. This usually means your `pg_hba.conf` is set to `md5` for all connections, even for the local `postgres` user.
+
+**To fix this and reset the password:**
+
+1. **Temporarily allow peer authentication for the `postgres` user:**
+
+- Edit your `pg_hba.conf`:
+  ```sh
+  sudo nano /etc/postgresql/15/main/pg_hba.conf
+  ```
+- Change this line:
+  ```
+  local   all             postgres                                md5
+  ```
+  back to:
+  ```
+  local   all             postgres                                peer
+  ```
+- Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+2. **Restart PostgreSQL:**
+   ```sh
+   sudo systemctl restart postgresql
+   ```
+
+3. **Now, as the `postgres` user, run:**
+   ```sh
+   sudo -i -u postgres
+   psql
+   ```
+   (You should get the `psql` prompt without a password.)
+
+4. **Set the password:**
+   ```sql
+   \password postgres
+   ```
+   - Enter your new password (the same as in your .env).
+
+5. **Exit psql and the `postgres` shell:**
+   ```sql
+   \q
+   exit
+   ```
+
+6. **Edit `pg_hba.conf` again and set it back to `md5`:**
+   ```sh
+   sudo nano /etc/postgresql/15/main/pg_hba.conf
+   ```
+   Change:
+   ```
+   local   all             postgres                                peer
+   ```
+   back to:
+   ```
+   local   all             postgres                                md5
+   ```
+   Save and exit.
+
+7. **Restart PostgreSQL again:**
+   ```sh
+   sudo systemctl restart postgresql
+   ```
+
+8. **Test the password:**
+   ```sh
+   psql -U postgres -h localhost
+   ```
+   Enter the new password. You should now get the `psql` prompt.
+
+---
+
+After this, your app should also be able to connect. Let me know if you need help with any step!
+
+Check prodution logs for the real error:
+sudo journalctl -u advocacia-ia.service --no-pager -n 50
+
+
+Check for migrations:
+flask db upgrade
+
+Edit service:
+sudo nano /etc/systemd/system/advocacia-ia.service
+
+Restart your service:
+sudo systemctl restart advocacia-ia.service
+
+ssh root@167.71.93.211
+Adv0c@cia2025!IA
+
+Alembic directory:
+cd /var/www/advocacia_ia
+
+Activate the virtual environment:
+source /var/www/advocacia_ia/venv/bin/activate
+
+Enter the PostgrSQL prompt as the postgres superuser:
+sudo -u postgres psql
+
+
+print(DB_PASSWORD: os.getenv("DB_PASSWORD"))
+-----------------------
+\c advdb
+
+GRANT ALL ON SCHEMA public TO advuser;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO advuser;
+
+alembic upgrade head
+----------
+alembic heads
+alembic merge -m "merge heads" 0002_add_tenant_columns 3ef67bdf723f
+-------------------------
+alembic downgrade base
+alembic upgrade head
+
+
+grep -r "0002_create_usuarios_table" /var/www/advocacia_ia/alembic/versions/
+
+SELECT * FROM alembic_version;
+
+--------
+export DB_USER=postgres
+export DB_PASSWORD=probe365
+export DB_HOST=localhost
+export DB_NAME=advocacia_ia_prod
+export DB_PORT=5432
+
+psql -U postgres -d advocacia_ia_prod
+-------------------
+Your config.py now defaults to your production database settings:
+
+DB_NAME: advocacia_ia_prod
+DB_USER: postgres
+DB_PASSWORD: probe365
+This ensures consistency—your app and Alembic will always use these values unless you override them with environment variables.
+
+------
+source venv/bin/activate
+flask db upgrade
+
+flask db migrate -m "Cria tabela usuarios"
+flask db upgrade
+----------------------
+
+nano /var/www/advocacia_ia/app/blueprints/clientes.py
+nano /var/www/advocacia_ia/cadastro_manager.py
+
+--------------
+cd /var/www/advocacia_ia
+
+# Check if .env exists
+ls -la .env
+
+# If it doesn't exist or is empty, create it
+cat > .env << 'EOF'
+DB_NAME=advocacia_ia_prod
+DB_USER=postgres
+DB_PASSWORD=probe365
+DB_HOST=localhost
+DB_PORT=5432
+FLASK_ENV=production
+SECRET_KEY=dop_v1_d5f96077a9e03d60bd27529a6f7471b95a44e427e9717c32d0d5922eee630022
+EOF
+
+# Verify it was created
+cat .env
+
+
+cd /var/www/advocacia_ia
+
+# Create .env file
+cat > .env << 'EOF'
+DB_NAME=advocacia_ia_prod
+DB_USER=postgres
+DB_PASSWORD=probe365
+DB_HOST=localhost
+DB_PORT=5432
+FLASK_ENV=production
+SECRET_KEY=dop_v1_d5f96077a9e03d60bd27529a6f7471b95a44e427e9717c32d0d5922eee630022
+EOF
+
+# Verify it was created
+cat .env
+
+# Test that it loads
+python3 -c "
+import os
+from dotenv import load_dotenv
+load_dotenv()
+print('✅ DB_NAME:', os.getenv('DB_NAME'))
+print('✅ DB_USER:', os.getenv('DB_USER'))
+print('✅ DB_HOST:', os.getenv('DB_HOST'))
+print('✅ DB_PORT:', os.getenv('DB_PORT'))
+"
+------
+cd /var/www/advocacia_ia
+
+# Create .env.systemd file (the one systemd service expects)
+cat > .env.systemd << 'EOF'
+DB_NAME=advocacia_ia_prod
+DB_USER=postgres
+DB_PASSWORD=probe365
+DB_HOST=localhost
+DB_PORT=5432
+FLASK_ENV=production
+SECRET_KEY=dop_v1_d5f96077a9e03d60bd27529a6f7471b95a44e427e9717c32d0d5922eee630022
+EOF
+
+# Also create .env for local development/testing
+cat > .env << 'EOF'
+DB_NAME=advocacia_ia_prod
+DB_USER=postgres
+DB_PASSWORD=probe365
+DB_HOST=localhost
+DB_PORT=5432
+FLASK_ENV=production
+SECRET_KEY=dop_v1_d5f96077a9e03d60bd27529a6f7471b95a44e427e9717c32d0d5922eee630022
+EOF
+
+# Set proper permissions
+chmod 600 .env.systemd
+chmod 600 .env
+
+# Verify both files exist
+ls -la .env*
+-----------------
+# Test directly to Flask app (should work)
+curl http://localhost:5001/health
+
+# Test through Nginx (should now work)
+curl http://localhost/health
+
+# Test from outside (if you have a domain or IP)
+curl http://167.71.93.211/health
+-----------------------------------------------------------
+----------------------------------------------------
+find /var/www/advocacia_ia -name "cadastro_manager.py" ==> Server DO
+find /var/www/advocacia_ia -name "__init__.py"
+
+scp root@167.71.93.211:/var/www/advocacia_ia/app/blueprints/clientes.py .
+scp root@167.71.93.211:/var/www/advocacia_ia/cadastro_manager.py .
+scp root@167.71.93.211:/var/www/advocacia_ia/app/__init__.py .
+-----------------------------------------------------
+Enviar pelo laptop:
+git add app/services/cadastro_service.py
+git commit -m "Refatoração update_cliente para merge + multi-tenant seguro"
+git push
+
+Everything up-to-date
+
+cd /var/www/advocacia_ia
+git pull
+
+Ver algo como ==> para estar correto:
+Updating abc123..def456
+Fast-forward
+ app/services/cadastro_service.py | 20 ++++++++----
+
+
+sudo systemctl restart advocacia-ia.service
+sudo systemctl status advocacia-ia.service --no-pager | head -20
+
+Active: active (running)
+
+Verificação geral:
+git status ==> no laptop
+-------------------------------------------
+grep -R "Pipeline(" -n app/
+
+
+
+
+
+
+
+

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <h4>Documentos do Processo</h4>
+      <small class="text-muted">
+        Processo: {{ processo.nome_caso or processo.numero_cnj or id_processo }}
+      </small>
+    </div>
+    <div>
+      <a href="{{ url_for('processos.painel_processo', id_processo=id_processo) }}"
+         class="btn btn-sm btn-outline-secondary">
+        ← Voltar ao Painel do Processo
+      </a>
+    </div>
+  </div>
+
+  <!-- Botão + Novo Documento -->
+  <div class="mb-3">
+    <button class="btn btn-sm btn-primary"
+            hx-get="{{ url_for('processos.ui_upload_form', id_processo=id_processo) }}"
+            hx-target="#upload-area"
+            hx-swap="innerHTML">
+      + Novo Documento
+    </button>
+  </div>
+
+  <!-- Aqui entra o form de upload via HTMX -->
+  <div id="upload-area" class="mb-4"></div>
+
+  <!-- Lista de documentos -->
+  <div id="lista-documentos" class="mb-4">
+    {% include "_lista_documentos.html" with context %}
+  </div>
+
+    <!-- PREVIEW GENÉRICO (HTMX vai trocar o conteúdo deste card) -->
+  <div id="preview-area" class="card bg-dark border-secondary">
+    <div class="card-header">
+      <strong>Preview do Documento</strong>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-0">
+        Selecione um documento e clique em <strong>Visualizar</strong> para ver o conteúdo aqui.
+      </p>
+    </div>
+  </div>
+</div>  {# fecha .container #}
+
+{% endblock %}

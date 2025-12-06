@@ -132,3 +132,49 @@
   });
 })();
 </script>
+
+<script>
+// Auto-load case summary into FAISS query box
+document.addEventListener("DOMContentLoaded", function () {
+    const textarea = document.getElementById("faiss-query");
+    const caseInput = document.getElementById("faiss-case-id") 
+                       || document.querySelector("[data-case-id]");
+
+    if (!textarea) {
+        console.warn("[FAISS] textarea #faiss-query não encontrado.");
+        return;
+    }
+
+    // O painel do processo deve expor o case_id em algum lugar
+    let caseId = null;
+
+    if (caseInput) {
+        caseId = (caseInput.value || caseInput.dataset.caseId || "").trim();
+    }
+
+    // fallback: tentar extrair do URL
+    if (!caseId) {
+        const m = window.location.pathname.match(/processos\/painel\/(caso_[A-Za-z0-9]+)/);
+        if (m) caseId = m[1];
+    }
+
+    if (!caseId) {
+        console.warn("[FAISS] Não foi possível determinar o case_id.");
+        return;
+    }
+
+    // Chama o novo endpoint /ementas/faiss/resumo
+    fetch(`/ementas/faiss/resumo?case_id=${encodeURIComponent(caseId)}`)
+        .then(resp => resp.json())
+        .then(data => {
+            console.log("[FAISS] Resumo carregado:", data);
+
+            if (data && data.ok && data.resumo) {
+                textarea.value = data.resumo;
+            }
+        })
+        .catch(err => {
+            console.error("[FAISS] Erro ao carregar resumo:", err);
+        });
+});
+</script>

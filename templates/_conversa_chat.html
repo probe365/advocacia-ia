@@ -1,6 +1,6 @@
-{# Display chat messages in chronological order (oldest first) #}
+{# Display chat messages in reverse chronological order (newest first) #}
 {% if chat_history %}
-  {% for message in chat_history %}
+  {% for message in chat_history|reverse %}
     {% if message.role == 'user' %}
       <div class="d-flex flex-row justify-content-end p-2">
         <div class="bg-primary text-white p-2 rounded" style="max-width: 80%;">
