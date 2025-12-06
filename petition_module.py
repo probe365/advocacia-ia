@@ -54,7 +54,9 @@ def _sanitize_narrativa(
     if "honor" in contexto_normalizado:
         honor_sentences = [
             sentence
-            for sentence in _split_sentences(fatos) + _split_sentences(narrativa)
+            for sentence in (
+                list(_split_sentences(fatos)) + list(_split_sentences(narrativa))
+            )
             if any(token in sentence.lower() for token in ("honor", "advog"))
         ]
         if honor_sentences:
