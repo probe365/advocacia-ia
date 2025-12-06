@@ -8,6 +8,10 @@ __pycache__/
 ementas_kb_store/
 kb_store/
 cases/
+data/ementas_faiss/
+data/store/
+data/interim/
+models/
 
 # logs locais
 *.log
