@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template
+from flask import Blueprint, request, render_template, g
 from flask_login import login_required
 from pipeline import Pipeline
 from werkzeug.utils import secure_filename
@@ -9,7 +9,7 @@ from urllib.parse import unquote
 kb_bp = Blueprint('kb', __name__, url_prefix='/kb')
 logger = logging.getLogger(__name__)
 
-_KB_PIPELINE_CACHE = None
+_KB_PIPELINE_CACHE: Pipeline | None = None
 FALLBACK_KB_DIR = Path('./kb_fallback')
 FALLBACK_KB_DIR.mkdir(parents=True, exist_ok=True)
 FALLBACK_INDEX = FALLBACK_KB_DIR / 'index.json'
@@ -40,8 +40,8 @@ def _fallback_store_file(filename: str, content: bytes):
     names.append(filename)
     _save_fallback_index(names)
 
-def _merged_kb_filenames(pipeline) -> list:
-    base = []
+def _merged_kb_filenames(pipeline: Pipeline | None) -> list[str]:
+    base: list[str] = []
     try:
         if pipeline:
             base = pipeline.get_global_kb_filenames() or []
@@ -51,36 +51,15 @@ def _merged_kb_filenames(pipeline) -> list:
     merged = sorted(set(base + fallback))
     return merged
 
-def _get_kb_pipeline(light: bool = True):
+def _get_kb_pipeline(light: bool = True) -> Pipeline:
     global _KB_PIPELINE_CACHE
     if _KB_PIPELINE_CACHE is None:
         try:
-            from ingestion_module import IngestionHandler
-            from pathlib import Path
-            import openai
-            base_cases_dir = Path("./cases")
-            openai_client = openai.OpenAI()
-            ingestion_handler = IngestionHandler(
-                nlp_processor=None,
-                text_splitter=None,
-                label_map=None,
-                case_store=None,
-                kb_store=None
-            )
-            p = Pipeline(
+            tenant_id = getattr(g, 'tenant_id', None) if light else None
+            _KB_PIPELINE_CACHE = Pipeline(
                 case_id='kb_dummy',
-                ingestion_handler=ingestion_handler,
-                openai_client=openai_client,
-                base_cases_dir=base_cases_dir,
-                tenant_id=None
+                tenant_id=tenant_id,
             )
-            # Libera objetos não necessários para ingestão básica da KB
-            try:
-                p.llm = None
-                p.agent_executor = None
-            except Exception:
-                pass
-            _KB_PIPELINE_CACHE = p
         except Exception as e:
             logger.error(f"Falha ao inicializar Pipeline KB: {e}")
             raise
@@ -190,7 +169,6 @@ def kb_clear_search():
 @login_required
 def kb_view_document(filename):
     """Visualiza o conteúdo completo de um documento da KB."""
-    from urllib.parse import unquote
     filename = unquote(filename)
     
     try:

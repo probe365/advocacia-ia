@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """Teste rápido de partes adversas"""
 import sys
-sys.stdout.reconfigure(encoding='utf-8')
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from cadastro_manager import CadastroManager
 

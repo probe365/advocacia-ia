@@ -1,7 +1,11 @@
 # models.py
 from flask_login import UserMixin
 from datetime import datetime
-from app.extensions import db
+from typing import Any, cast
+from app.extensions import db as _db
+
+
+db: Any = cast(Any, _db)
 
 
 class User(UserMixin):

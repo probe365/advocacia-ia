@@ -15,24 +15,16 @@ import json
 import argparse
 import threading
 import pickle
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
-from flask import Flask, request, jsonify
-# Optional flask_cors: import only if the package is available to avoid lint/import errors
+from flask import Flask, jsonify, request
+
+# Optional flask_cors import so mypy knows the callable might be missing.
 try:
-    import importlib.util
-    if importlib.util.find_spec("flask_cors") is not None:
-        import importlib
-        _mod = importlib.import_module("flask_cors")
-        CORS = getattr(_mod, "CORS", None)
-        _HAS_CORS = CORS is not None
-    else:
-        CORS = None
-        _HAS_CORS = False
-except Exception:
-    CORS = None
-    _HAS_CORS = False
+    from flask_cors import CORS as _CORS
+except Exception:  # pragma: no cover - best effort optional dependency
+    _CORS = None
 
 import torch
 import torch.nn as nn
@@ -126,8 +118,8 @@ def cosine_sim_matrix(q: np.ndarray, M: np.ndarray) -> np.ndarray:
 # --------------------------
 def create_app(models_dir: str) -> Flask:
     app = Flask(__name__)
-    if _HAS_CORS:
-        CORS(app)
+    if _CORS is not None:
+        _CORS(app)
 
     # ==== Load artifacts ====
     cfg_path = os.path.join(models_dir, "config.json")
@@ -141,13 +133,13 @@ def create_app(models_dir: str) -> Flask:
     if not os.path.exists(cfg_path):
         raise FileNotFoundError(f"Missing config.json in {models_dir}")
 
-    with open(cfg_path, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
+    with open(cfg_path, "r", encoding="utf-8") as cfg_file:
+        cfg = json.load(cfg_file)
 
-    with open(vocab_path, "rb") as f:
-        vocab = pickle.load(f)
-    with open(le_path, "rb") as f:
-        le = pickle.load(f)
+    with open(vocab_path, "rb") as vocab_file:
+        vocab = pickle.load(vocab_file)
+    with open(le_path, "rb") as label_encoder_file:
+        le = pickle.load(label_encoder_file)
 
     # Word2Vec
     kv = KeyedVectors.load(kv_path, mmap='r')
@@ -185,8 +177,8 @@ def create_app(models_dir: str) -> Flask:
     # ==== Semantic Index (id, text, vec) ====
     _index_lock = threading.Lock()
     if os.path.exists(index_path):
-        with open(index_path, "rb") as f:
-            index_store = pickle.load(f)
+        with open(index_path, "rb") as index_file:
+            index_store = pickle.load(index_file)
     else:
         index_store = {"items": [], "mat": None}  # mat: (N, D) normalized float32
 
@@ -287,8 +279,8 @@ def create_app(models_dir: str) -> Flask:
                     added += 1
             _rebuild_matrix()
             # persist
-            with open(index_path, "wb") as f:
-                pickle.dump(index_store, f)
+            with open(index_path, "wb") as index_file:
+                pickle.dump(index_store, index_file)
         return jsonify({"added": added, "updated": updated, "total": len(index_store["items"])})
 
     @app.post("/similar")

@@ -5,6 +5,7 @@ Assigns tipo_parte based on case name patterns.
 """
 import os
 import re
+from typing import Dict
 import psycopg2
 from psycopg2.extras import DictCursor
 
@@ -51,7 +52,7 @@ def detect_tipo_parte(nome_caso: str) -> tuple[str | None, float]:
         return None, 0.0
     
     nome_lower = nome_caso.lower()
-    scores = {}
+    scores: Dict[str, float] = {}
     
     for tipo, patterns in PATTERNS.items():
         matches = 0
@@ -64,7 +65,7 @@ def detect_tipo_parte(nome_caso: str) -> tuple[str | None, float]:
     if not scores:
         return None, 0.0
     
-    best_tipo = max(scores, key=scores.get)
+    best_tipo = max(scores, key=lambda tipo: scores[tipo])
     confidence = scores[best_tipo]
     
     return best_tipo, confidence

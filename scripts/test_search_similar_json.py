@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 """
 Busca por similaridade no índice FAISS das ementas.
@@ -36,7 +37,11 @@ import faiss
 from sentence_transformers import SentenceTransformer
 
 
-def load_store_paths(store_dir: Path, index_path: Path = None, meta_path: Path = None):
+def load_store_paths(
+    store_dir: Path | None,
+    index_path: Path | None = None,
+    meta_path: Path | None = None,
+) -> tuple[Path, Path]:
     """
     Resolve os caminhos do índice e dos metadados a partir de:
     - store_dir (se fornecido), OU
@@ -47,6 +52,8 @@ def load_store_paths(store_dir: Path, index_path: Path = None, meta_path: Path =
             raise ValueError("Informe --store OU ambos --index e --meta.")
         index_path = store_dir / "index.faiss"
         meta_path = store_dir / "metadados.pkl"
+    if index_path is None or meta_path is None:
+        raise ValueError("Não foi possível resolver caminhos do índice/metadados.")
     return index_path, meta_path
 
 

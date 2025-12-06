@@ -2,7 +2,7 @@
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional, Tuple, Literal, cast
 import uuid
 from datetime import datetime
 import json
@@ -12,6 +12,9 @@ from werkzeug.security import generate_password_hash
 
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+FetchMode = Literal["one", "all"]
+Params = Tuple[Any, ...]
 
 class CadastroManager:
     """Gerencia todos os dados cadastrais em um banco de dados PostgreSQL.
@@ -55,7 +58,12 @@ class CadastroManager:
 
 
 
-    def _execute_query(self, query: str, params: tuple = None, fetch: Optional[str] = None) -> Any:
+    def _execute_query(
+        self,
+        query: str,
+        params: Optional[Params] = None,
+        fetch: FetchMode | None = None,
+    ) -> Any:
         conn = None
         try:
             conn = self._get_connection()
@@ -107,10 +115,27 @@ class CadastroManager:
     def save_advogado(self, dados: Dict[str, Any], oab_original: Optional[str] = None):
         if oab_original:
             query = "UPDATE advogados SET oab = %s, nome = %s, email = %s, area_atuacao = %s WHERE oab = %s"
-            params = (dados.get("oab"), dados.get("nome"), dados.get("email"), dados.get("area_atuacao"), oab_original)
+            params = cast(
+                Params,
+                (
+                    dados.get("oab"),
+                    dados.get("nome"),
+                    dados.get("email"),
+                    dados.get("area_atuacao"),
+                    oab_original,
+                ),
+            )
         else:
             query = "INSERT INTO advogados (oab, nome, email, area_atuacao) VALUES (%s, %s, %s, %s)"
-            params = (dados.get("oab"), dados.get("nome"), dados.get("email"), dados.get("area_atuacao"))
+            params = cast(
+                Params,
+                (
+                    dados.get("oab"),
+                    dados.get("nome"),
+                    dados.get("email"),
+                    dados.get("area_atuacao"),
+                ),
+            )
         self._execute_query(query, params)
 
     def delete_advogado(self, oab: str):
@@ -126,7 +151,11 @@ class CadastroManager:
             return self._execute_query("SELECT * FROM clientes WHERE id_cliente = %s AND tenant_id = %s", (id_cliente, self.tenant_id), fetch="one")
         return self._execute_query("SELECT * FROM clientes WHERE id_cliente = %s", (id_cliente,), fetch="one")
 
-    def save_cliente(self, dados: Dict[str, Any], id_cliente: Optional[str] = None) -> str:
+    def save_cliente(
+        self,
+        dados: Dict[str, Any],
+        id_cliente: Optional[str] = None,
+    ) -> Optional[str]:
         if id_cliente:
             # UPDATE
             cliente_atual = self.get_cliente_by_id(id_cliente)
@@ -144,7 +173,9 @@ class CadastroManager:
                         responsavel_pj=%s, observacoes=%s
                     WHERE id_cliente=%s AND tenant_id=%s
                 """
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados_completos.get("tipo_pessoa"),
                     dados_completos.get("nome_completo"),
                     dados_completos.get("cpf_cnpj"),
@@ -158,7 +189,8 @@ class CadastroManager:
                     dados_completos.get("responsavel_pj"),
                     dados_completos.get("observacoes"),
                     id_cliente,
-                    self.tenant_id,
+                        self.tenant_id,
+                    ),
                 )
             else:
                 query = """
@@ -169,7 +201,9 @@ class CadastroManager:
                         responsavel_pj=%s, observacoes=%s
                     WHERE id_cliente=%s
                 """
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados_completos.get("tipo_pessoa"),
                     dados_completos.get("nome_completo"),
                     dados_completos.get("cpf_cnpj"),
@@ -182,7 +216,8 @@ class CadastroManager:
                     dados_completos.get("email"),
                     dados_completos.get("responsavel_pj"),
                     dados_completos.get("observacoes"),
-                    id_cliente,
+                        id_cliente,
+                    ),
                 )
 
             # 👈 AQUI estava faltando
@@ -200,7 +235,9 @@ class CadastroManager:
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id_cliente
                 """
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados.get("tipo_pessoa"),
                     dados.get("nome_completo"),
                     dados.get("cpf_cnpj"),
@@ -214,7 +251,8 @@ class CadastroManager:
                     dados.get("responsavel_pj"),
                     datetime.now().strftime("%Y-%m-%d"),
                     dados.get("observacoes"),
-                    self.tenant_id,
+                        self.tenant_id,
+                    ),
                 )
             else:
                 query = """
@@ -226,7 +264,9 @@ class CadastroManager:
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id_cliente
                 """
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados.get("tipo_pessoa"),
                     dados.get("nome_completo"),
                     dados.get("cpf_cnpj"),
@@ -239,7 +279,8 @@ class CadastroManager:
                     dados.get("email"),
                     dados.get("responsavel_pj"),
                     datetime.now().strftime("%Y-%m-%d"),
-                    dados.get("observacoes"),
+                        dados.get("observacoes"),
+                    ),
                 )
 
             result = self._execute_query(query, params, fetch="one")
@@ -381,7 +422,7 @@ class CadastroManager:
             if dados.get("numero_cnj"):
                 # Buscar numero_cnj atual do processo
                 check_query = "SELECT numero_cnj FROM processos WHERE id_processo=%s"
-                check_params = (id_processo,)
+                check_params: Params = (id_processo,)
                 if self.multi_tenant:
                     check_query += " AND tenant_id=%s"
                     check_params = (id_processo, self.tenant_id)
@@ -407,14 +448,17 @@ class CadastroManager:
                     valor_causa=%s, data_distribuicao=%s, data_encerramento=%s, sentenca=%s,
                     em_execucao=%s, segredo_justica=%s
                     WHERE id_processo=%s AND tenant_id=%s"""
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados.get("nome_caso"), dados.get("numero_cnj"), dados.get("status"), 
                     dados.get("advogado_oab"), tipo_parte,
                     dados.get("local_tramite"), dados.get("comarca"), area_atuacao, 
                     instancia, subfase, dados.get("assunto"),
                     valor_causa, data_distribuicao, data_encerramento, dados.get("sentenca"),
                     em_execucao, segredo_justica,
-                    id_processo, self.tenant_id
+                        id_processo, self.tenant_id,
+                    ),
                 )
             else:
                 query = """UPDATE processos SET 
@@ -423,14 +467,17 @@ class CadastroManager:
                     valor_causa=%s, data_distribuicao=%s, data_encerramento=%s, sentenca=%s,
                     em_execucao=%s, segredo_justica=%s
                     WHERE id_processo=%s"""
-                params = (
+                params = cast(
+                    Params,
+                    (
                     dados.get("nome_caso"), dados.get("numero_cnj"), dados.get("status"), 
                     dados.get("advogado_oab"), tipo_parte,
                     dados.get("local_tramite"), dados.get("comarca"), area_atuacao, 
                     instancia, subfase, dados.get("assunto"),
                     valor_causa, data_distribuicao, data_encerramento, dados.get("sentenca"),
-                    em_execucao, segredo_justica,
-                    id_processo
+                        em_execucao, segredo_justica,
+                        id_processo,
+                    ),
                 )
         else:
             # INSERT - cria novo processo (construção dinâmica apenas com campos fornecidos)
@@ -466,10 +513,18 @@ class CadastroManager:
                 try:
                     if self.multi_tenant:
                         check_query = "SELECT 1 FROM advogados WHERE oab = %s AND tenant_id = %s"
-                        result = self._execute_query(check_query, (advogado_oab, self.tenant_id), fetch=True)
+                        result = self._execute_query(
+                            check_query,
+                            (advogado_oab, self.tenant_id),
+                            fetch="one",
+                        )
                     else:
                         check_query = "SELECT 1 FROM advogados WHERE oab = %s"
-                        result = self._execute_query(check_query, (advogado_oab,), fetch=True)
+                        result = self._execute_query(
+                            check_query,
+                            (advogado_oab,),
+                            fetch="one",
+                        )
                     
                     if result:
                         campos_opcionais["advogado_oab"] = advogado_oab
@@ -492,7 +547,7 @@ class CadastroManager:
             placeholders = ",".join(["%s"] * len(valores))
             campos_str = ",".join(campos)
             query = f"INSERT INTO processos ({campos_str}) VALUES ({placeholders})"
-            params = tuple(valores)
+            params = cast(Params, tuple(valores))
         
         self._execute_query(query, params)
         logger.info(f"Processo {'atualizado' if id_processo else 'criado'}: {id_processo}")
@@ -637,7 +692,7 @@ class CadastroManager:
                 WHERE id_processo = %s AND tenant_id = %s
                 ORDER BY created_at DESC
             """
-            params = (id_processo, self.tenant_id)
+            params = cast(Params, (id_processo, self.tenant_id))
         else:
             query = """
                 SELECT *
@@ -645,17 +700,17 @@ class CadastroManager:
                 WHERE id_processo = %s
                 ORDER BY created_at DESC
             """
-            params = (id_processo,)
+            params = cast(Params, (id_processo,))
 
         return self._execute_query(query, params, fetch="all") or []
 
     def get_documento_by_id(self, doc_id: int) -> Optional[Dict[str, Any]]:
         if self.multi_tenant:
             query = "SELECT * FROM documentos WHERE id=%s AND tenant_id=%s"
-            params = (doc_id, self.tenant_id)
+            params = cast(Params, (doc_id, self.tenant_id))
         else:
             query = "SELECT * FROM documentos WHERE id=%s"
-            params = (doc_id,)
+            params = cast(Params, (doc_id,))
 
         return self._execute_query(query, params, fetch="one")
 
@@ -699,10 +754,10 @@ class CadastroManager:
     def delete_documento(self, doc_id: int) -> bool:
         if self.multi_tenant:
             query = "DELETE FROM documentos WHERE id=%s AND tenant_id=%s"
-            params = (doc_id, self.tenant_id)
+            params = cast(Params, (doc_id, self.tenant_id))
         else:
             query = "DELETE FROM documentos WHERE id=%s"
-            params = (doc_id,)
+            params = cast(Params, (doc_id,))
 
         rc = self._execute_query(query, params)
         return rc > 0
@@ -723,12 +778,11 @@ class CadastroManager:
         # AND tenant_id = %s
         # e passar self.tenant_id como terceiro parâmetro.
 
-        with self.conn.cursor() as cur:
-            cur.execute(sql, (self.tenant_id, id_processo, titulo, self.tenant_id))
-
-            apagados = cur.rowcount
-
-        self.conn.commit()
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, (self.tenant_id, id_processo, titulo, self.tenant_id))
+                apagados = cur.rowcount
+            conn.commit()
         return apagados > 0
 
     def delete_documento_by_filename(self, id_processo: str, titulo: str) -> bool:
@@ -851,11 +905,22 @@ class CadastroManager:
                     telefone=%s, email=%s, advogado_nome=%s, advogado_oab=%s, observacoes=%s,
                     updated_at=NOW()
                     WHERE id=%s AND tenant_id=%s"""
-                params = (
-                    tipo_parte, nome_completo, cpf_cnpj, dados.get("rg"), qualificacao,
-                    endereco_completo, bairro, cidade, estado, cep,
-                    telefone, email, advogado_nome, advogado_oab, observacoes,
-                    id_parte, self.tenant_id
+                params = cast(
+                    Params,
+                    (
+                        tipo_parte,
+                        nome_completo,
+                        cpf_cnpj,
+                        dados.get("rg"),
+                        qualificacao,
+                        endereco_completo,
+                        bairro,
+                        cidade,
+                        estado,
+                        cep,
+                        telefone, email, advogado_nome, advogado_oab, observacoes,
+                        id_parte, self.tenant_id,
+                    ),
                 )
             else:
                 query = """UPDATE partes_adversas SET 
@@ -864,11 +929,22 @@ class CadastroManager:
                     telefone=%s, email=%s, advogado_nome=%s, advogado_oab=%s, observacoes=%s,
                     updated_at=NOW()
                     WHERE id=%s"""
-                params = (
-                    tipo_parte, nome_completo, cpf_cnpj, dados.get("rg"), qualificacao,
-                    endereco_completo, bairro, cidade, estado, cep,
-                    telefone, email, advogado_nome, advogado_oab, observacoes,
-                    id_parte
+                params = cast(
+                    Params,
+                    (
+                        tipo_parte,
+                        nome_completo,
+                        cpf_cnpj,
+                        dados.get("rg"),
+                        qualificacao,
+                        endereco_completo,
+                        bairro,
+                        cidade,
+                        estado,
+                        cep,
+                        telefone, email, advogado_nome, advogado_oab, observacoes,
+                        id_parte,
+                    ),
                 )
             
             self._execute_query(query, params)
@@ -886,11 +962,27 @@ class CadastroManager:
                 telefone, email, advogado_nome, advogado_oab, observacoes,
                 created_at, updated_at
             ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),NOW()) RETURNING id"""
-            params = (
-                dados.get("id_processo"), tenant_id_final, tipo_parte, nome_completo, 
-                cpf_cnpj, dados.get("rg"), qualificacao,
-                endereco_completo, bairro, cidade, estado, cep,
-                telefone, email, advogado_nome, advogado_oab, observacoes
+            params = cast(
+                Params,
+                (
+                    dados.get("id_processo"),
+                    tenant_id_final,
+                    tipo_parte,
+                    nome_completo,
+                    cpf_cnpj,
+                    dados.get("rg"),
+                    qualificacao,
+                    endereco_completo,
+                    bairro,
+                    cidade,
+                    estado,
+                    cep,
+                    telefone,
+                    email,
+                    advogado_nome,
+                    advogado_oab,
+                    observacoes,
+                ),
             )
             
             result = self._execute_query(query, params, fetch="one")
@@ -929,10 +1021,16 @@ class CadastroManager:
         password_hash = generate_password_hash(password)
         if self.multi_tenant:
             query = "INSERT INTO usuarios (username, email, password_hash, nome_completo, data_criacao, advogado_oab, tenant_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            params = (username, email, password_hash, nome_completo, datetime.now(), advogado_oab, self.tenant_id)
+            params = cast(
+                Params,
+                (username, email, password_hash, nome_completo, datetime.now(), advogado_oab, self.tenant_id),
+            )
         else:
             query = "INSERT INTO usuarios (username, email, password_hash, nome_completo, data_criacao, advogado_oab) VALUES (%s, %s, %s, %s, %s, %s)"
-            params = (username, email, password_hash, nome_completo, datetime.now(), advogado_oab)
+            params = cast(
+                Params,
+                (username, email, password_hash, nome_completo, datetime.now(), advogado_oab),
+            )
         try:
             self._execute_query(query, params)
             return True
@@ -954,10 +1052,10 @@ class CadastroManager:
     def save_chat_turn(self, id_processo: str, role: str, content: str):
         if self.multi_tenant:
             query = "INSERT INTO chat_turns (id_processo, role, content, tenant_id) VALUES (%s,%s,%s,%s)"
-            params = (id_processo, role, content, self.tenant_id)
+            params = cast(Params, (id_processo, role, content, self.tenant_id))
         else:
             query = "INSERT INTO chat_turns (id_processo, role, content) VALUES (%s,%s,%s)"
-            params = (id_processo, role, content)
+            params = cast(Params, (id_processo, role, content))
         self._execute_query(query, params)
 
     def get_chat_history(self, id_processo: str, limit: int = 50) -> List[Dict[str, Any]]:

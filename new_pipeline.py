@@ -1,3 +1,13 @@
+from __future__ import annotations
+
+import hashlib
+import logging
+from pathlib import Path
+from typing import Optional
+
+
+logger = logging.getLogger(__name__)
+
 def processar_upload_de_arquivo(
         self,
         id_processo: str,

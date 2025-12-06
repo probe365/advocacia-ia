@@ -53,11 +53,17 @@ class IngestionHandler:
 
     def _extract_entities_from_spacy_doc(self, doc: spacy.tokens.Doc) -> Dict[str, List[str]]:
         # (Código mantido da versão anterior do pipeline.py)
-        structured_entities = {mapped_label: [] for mapped_label in self.label_map.values()}
+        structured_entities: Dict[str, List[str]] = {
+            mapped_label: [] for mapped_label in self.label_map.values()
+        }
         for ent in doc.ents:
             mapped_key = self.label_map.get(ent.label_)
             if mapped_key: structured_entities[mapped_key].append(ent.text)
         return {k: v for k, v in structured_entities.items() if v}
+
+    @staticmethod
+    def _extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+        return extract_text_from_pdf_bytes(pdf_bytes)
 
     def _add_text_to_case_store(self, text: str, metadata: Dict[str, Any]):
         # (Código mantido da versão anterior do pipeline.py)
@@ -114,7 +120,13 @@ class IngestionHandler:
         else: logger.warning(f"Nenhum texto extraído da imagem: {source_name}")
         return text
 
-    def add_audio(self, audio_bytes: bytes, source_name: str = "audio_upload", audio_format_suffix: str = ".mp3", openai_client: openai.OpenAI = None) -> str: 
+    def add_audio(
+        self,
+        audio_bytes: bytes,
+        source_name: str = "audio_upload",
+        audio_format_suffix: str = ".mp3",
+        openai_client: Optional[OpenAI] = None,
+    ) -> str: 
         logger.info(f"Processando áudio: {source_name}, sufixo para temp: {audio_format_suffix}")
         text = ""; tmp_path = None
         if not openai_client:
@@ -136,7 +148,13 @@ class IngestionHandler:
         else: logger.warning(f"Nenhum texto transcrito do áudio: {source_name}")
         return text
 
-    def add_video(self, video_bytes: bytes, source_name: str = "video_upload", video_format_suffix: str = ".mp4", openai_client: openai.OpenAI = None) -> Dict[str, Any]:
+    def add_video(
+        self,
+        video_bytes: bytes,
+        source_name: str = "video_upload",
+        video_format_suffix: str = ".mp4",
+        openai_client: Optional[OpenAI] = None,
+    ) -> Dict[str, Any]:
         logger.info(f"Processando vídeo: {source_name}")
         transcript = ""; audio_bytes_ext = None; tmp_vid, tmp_aud = None, None; clip = None
         if not openai_client:
@@ -190,10 +208,22 @@ class IngestionHandler:
         logger.warning("add_normas_lexml desabilitado (fetch_lexml_norma_html ausente).")
         return ""
 
-    def add_datajud_jurisprudencia(self, query: str, tribunal: str = "STJ", max_results: int = 5, search_field: str = "ementa") -> List[str]:
+    def add_datajud_jurisprudencia(
+        self,
+        query: str,
+        tribunal: str = "STJ",
+        max_results: int = 5,
+        search_field: str = "ementa",
+    ) -> List[str]:
         logger.info(f"Adicionando DataJud juris: q='{query}', t='{tribunal}', f='{search_field}'")
         try:
-            docs = fetch_datajud_jurisprudencia(query, tribunal, max_results, search_field=search_field)
+            fields = [search_field] if search_field else None
+            docs = fetch_datajud_jurisprudencia(
+                query,
+                tribunal,
+                max_results,
+                search_fields=fields,
+            )
             added = []
             for d in docs:
                 txt = f"Ementa:\n{d.get('ementa', '')}\n\nTexto Integral:\n{d.get('textoIntegral', '')}".strip()

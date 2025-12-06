@@ -241,7 +241,6 @@ def embed_corpus(
         batch_size=batch_size,
         show_progress_bar=show_progress,
         convert_to_numpy=True,
-        device=model.device
     )
     if normalize:
         faiss.normalize_L2(vecs)

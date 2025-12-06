@@ -4,8 +4,10 @@ Executa análise comparativa dos dados
 """
 import json
 import logging
-from pipeline import Pipeline
 from pathlib import Path
+from typing import Any, Dict
+
+from pipeline import Pipeline
 
 # Configurar logging detalhado
 logging.basicConfig(
@@ -23,24 +25,27 @@ def analyze_firac_petition_divergence(case_id: str):
     print("="*80)
     
     pipeline = Pipeline(case_id=case_id)
-    
+
     # 1. Gerar FIRAC
     print("\n[PASSO 1] Gerando análise FIRAC...")
-    firac_result = pipeline.generate_firac()
+    firac_raw = pipeline.generate_firac()
+    firac_result: Dict[str, Any] = firac_raw or {}
     
     print(f"\n{'='*80}")
     print("RESULTADO FIRAC COMPLETO:")
     print(f"{'='*80}")
     print(f"Cached: {firac_result.get('cached', False)}")
-    print(f"Has 'data': {firac_result.get('data') is not None}")
+    has_data = isinstance(firac_result.get('data'), dict)
+    print(f"Has 'data': {has_data}")
     print(f"Has 'raw': {bool(firac_result.get('raw'))}")
-    
-    if firac_result.get('data'):
+
+    data_block = firac_result.get('data') if has_data else {}
+
+    if isinstance(data_block, dict) and data_block:
         print(f"\n{'='*80}")
         print("FIRAC DATA (JSON):")
         print(f"{'='*80}")
-        firac_data = firac_result.get('data')
-        for key, value in firac_data.items():
+        for key, value in data_block.items():
             print(f"\n[{key.upper()}]:")
             print(f"  Tipo: {type(value)}")
             if isinstance(value, list):
@@ -53,13 +58,14 @@ def analyze_firac_petition_divergence(case_id: str):
     else:
         print("\n[AVISO] FIRAC 'data' está vazio ou None!")
         
-    if firac_result.get('raw'):
+    raw_text = str(firac_result.get('raw') or "")
+    if raw_text:
         print(f"\n{'='*80}")
         print("FIRAC RAW (Text):")
         print(f"{'='*80}")
-        raw_preview = firac_result.get('raw')[:500]
+        raw_preview = raw_text[:500]
         print(raw_preview)
-        print("..." if len(firac_result.get('raw')) > 500 else "")
+        print("..." if len(raw_text) > 500 else "")
     
     # 2. Preparar dados para petição
     print(f"\n{'='*80}")
@@ -92,7 +98,7 @@ def analyze_firac_petition_divergence(case_id: str):
     }
     
     # Processar FIRAC para petição (converter listas em strings)
-    data_firac = firac_result.get('data') or {}
+    data_firac = data_block if isinstance(data_block, dict) else {}
     
     print("\n[CONVERSÃO] Convertendo FIRAC para formato de petição...")
     firac_for_petition = {}
@@ -190,7 +196,8 @@ def analyze_firac_petition_divergence(case_id: str):
         # Verificar CONCLUSÃO
         print("\n[CONCLUSÃO]")
         conclusion_original = data_firac.get('conclusion', '')
-        print(f"  FIRAC: {conclusion_original[:200]}...")
+        conclusion_preview = str(conclusion_original)
+        print(f"  FIRAC: {conclusion_preview[:200]}...")
         
         # A conclusão do FIRAC deve influenciar os PEDIDOS
         pedidos_section = re.search(r'V - DOS PEDIDOS\s*(.*?)(?=\n\s*VI -|$)', peticao_txt, re.DOTALL)

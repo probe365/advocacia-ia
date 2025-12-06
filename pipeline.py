@@ -58,8 +58,6 @@ class Pipeline:
             tenant_id: identificador do tenant (g.tenant_id) para isolar diretórios.
         """
         self.case_id = case_id
-        self.ingestion_handler = ingestion_handler
-        self.openai_client = openai_client
         self.base_cases_dir = base_cases_dir
         self.tenant_id = tenant_id
 
@@ -88,7 +86,7 @@ class Pipeline:
         self.nlp = spacy.load("pt_core_news_sm")
         self.embeddings = OpenAIEmbeddings()
         self.llm = ChatOpenAI(temperature=0.5, model="gpt-4o")
-        self.openai_client = openai.OpenAI()
+        self.openai_client = openai_client or openai.OpenAI()
 
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
@@ -154,13 +152,16 @@ class Pipeline:
         )
 
         # --- Módulos especializados ---
-        self.ingestion_handler = IngestionHandler(
-            nlp_processor=self.nlp,
-            text_splitter=self.splitter,
-            label_map=self.label_map,
-            case_store=self.case_store,
-            kb_store=self.kb_store,
-        )
+        if ingestion_handler is not None:
+            self.ingestion_handler = ingestion_handler
+        else:
+            self.ingestion_handler = IngestionHandler(
+                nlp_processor=self.nlp,
+                text_splitter=self.splitter,
+                label_map=self.label_map,
+                case_store=self.case_store,
+                kb_store=self.kb_store,
+            )
 
         self.case_analyzer = CaseAnalyzer(
             llm=self.llm,
@@ -187,6 +188,27 @@ class Pipeline:
         )
 
         logger.info("Orquestrador Pipeline inicializado com sucesso.")
+
+    def _extract_text_from_llm_response(self, response: Any) -> str:
+        """Normaliza respostas do LangChain em texto simples."""
+        content = getattr(response, "content", "")
+        if isinstance(content, str):
+            return content.strip()
+
+        if isinstance(content, list):
+            parts: List[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    text = item.get("text")
+                    if text:
+                        parts.append(str(text))
+                else:
+                    parts.append(str(item))
+            return "\n".join(parts).strip()
+
+        return str(content).strip()
 
     # ======================================================================
     # MÉTODO DE CHAT (compatível com /processos/ui/<id_processo>/chat)
@@ -256,7 +278,7 @@ class Pipeline:
             )
 
             resp = self.llm.invoke(full_prompt)
-            answer = resp.content.strip()
+            answer = self._extract_text_from_llm_response(resp)
             return {"output": answer}
 
         except Exception as e:
@@ -326,7 +348,7 @@ class Pipeline:
         )
         try:
             resp = self.llm.invoke(prompt)
-            return resp.content.strip()
+            return self._extract_text_from_llm_response(resp)
         except Exception as e:
             logger.error(f"Erro ao gerar riscos: {e}")
             return f"Erro ao gerar riscos: {e}"
@@ -351,7 +373,7 @@ class Pipeline:
         )
         try:
             resp = self.llm.invoke(prompt)
-            return resp.content.strip()
+            return self._extract_text_from_llm_response(resp)
         except Exception as e:
             logger.error(f"Erro ao gerar próximos passos: {e}")
             return f"Erro ao gerar próximos passos: {e}"
@@ -798,7 +820,7 @@ class Pipeline:
         try:
             logger.info(f"[DEBUG] Prompt FIRAC enviado ao LLM:\n{prompt}")
             resp = self.llm.invoke(prompt)
-            raw = resp.content.strip()
+            raw = self._extract_text_from_llm_response(resp)
             data = json.loads(raw)
             self._cache_firac(focus_key, data, raw)
             logger.info(
@@ -820,7 +842,7 @@ class Pipeline:
             )
             try:
                 resp2 = self.llm.invoke(fallback_prompt)
-                raw_fb = resp2.content.strip()
+                raw_fb = self._extract_text_from_llm_response(resp2)
                 self._cache_firac(focus_key, None, raw_fb)
                 return {
                     "data": None,
@@ -845,7 +867,7 @@ class Pipeline:
         """
         Mantido para compatibilidade com analysis_module, se necessário.
         """
-        return self.case_analyzer.analyze_firac(result_dict=context)
+        return self.case_analyzer.analyze_firac(context=context)
 
     def generate_peticao_rascunho(
         self,

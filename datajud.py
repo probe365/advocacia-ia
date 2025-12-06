@@ -188,7 +188,7 @@ def fetch_datajud_jurisprudencia(
     max_results: int = 5,
     # O search_field padrão pode não ser mais 'ementa' para todos os casos.
     # Poderíamos ter uma lista de campos a serem testados ou focar em 'assuntos.nome'.
-    search_fields: List[str] = None, # Nova lista de campos
+    search_fields: Optional[List[str]] = None, # Nova lista de campos
     target_subject: Optional[str] = None # Novo parâmetro para buscar por um assunto específico
 ) -> List[Dict[str, Any]]:
     endpoint_url = ENDPOINTS.get(tribunal.upper())
@@ -199,7 +199,7 @@ def fetch_datajud_jurisprudencia(
     logger.info(f"Buscando DataJud: T='{tribunal}', Q='{query[:50]}...', Assunto='{target_subject}', Max={max_results}, Campos='{search_fields}'")
 
     # Construção do payload baseada nos novos parâmetros
-    query_conditions = []
+    query_conditions: List[Dict[str, Any]] = []
 
     if target_subject:
         query_conditions.append({"match": {"assuntos.nome": target_subject}})

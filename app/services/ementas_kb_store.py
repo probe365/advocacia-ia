@@ -26,7 +26,7 @@ class EmentasFAISSStore:
 
         self._lock = threading.RLock()
 
-        self.index = None
+        self.index = faiss.IndexFlatIP(self.dim)
         self.ids: List[str] = []
         self._load()
 

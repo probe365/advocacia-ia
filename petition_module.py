@@ -3,10 +3,10 @@ from email import utils
 import logging
 import json
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime # Movida para cá
 
-from langchain_community.chat_models import ChatOpenAI 
+from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
@@ -330,7 +330,7 @@ OAB/{uf_oab} nº {numero_oab}
         """Normaliza nome próprio ou razão social."""
         return nome.strip().title() if nome else "[NOME]"
 
-    def _format_data(self, data: str = None) -> str:
+    def _format_data(self, data: Optional[str] = None) -> str:
         """Formata a data atual ou uma data fornecida no padrão brasileiro."""
         from datetime import datetime
         if data:

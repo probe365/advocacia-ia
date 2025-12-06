@@ -55,7 +55,7 @@ def process_uploaded_files(uploaded_files: List[Any]) -> List[Dict[str, str]]:
     Returns:
         Lista de dicionários, cada um com 'filename' e 'content'.
     """
-    documents = []
+    documents: List[Dict[str, str]] = []
     if not uploaded_files:
         return documents
 

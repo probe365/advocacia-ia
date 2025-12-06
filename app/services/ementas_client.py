@@ -21,27 +21,29 @@ class EmentasSearchClient:
         self.store_path = Path(store_path)
         self.normalize = normalize
 
-        self.index = None  # faiss.Index
         self.meta: Dict[int, Dict[str, Any]] = {}
+        self.index = self._load_or_init()
 
-        self._load_or_init()
-
-    def _load_or_init(self):
+    def _load_or_init(self) -> faiss.Index:
         self.store_path.mkdir(parents=True, exist_ok=True)
         meta_fp = self.store_path / "meta.npy"
 
         if self.index_path.exists():
-            self.index = faiss.read_index(str(self.index_path))
+            index = faiss.read_index(str(self.index_path))
             if meta_fp.exists():
                 # dtype=object para dicionários
                 self.meta = {int(k): v.item() for k, v in np.load(meta_fp, allow_pickle=True)}
+            return index
         else:
             # Começa vazio (usar índice flat L2; troque p/ IVFFlat/HNSW depois)
-            self.index = faiss.IndexFlatIP(768)  # 768 para MiniLM; ajuste conforme o modelo
-            self._persist()
+            dim = self.model.get_sentence_embedding_dimension()
+            index = faiss.IndexFlatIP(dim)
+            self._persist(index)
+            return index
 
-    def _persist(self):
-        faiss.write_index(self.index, str(self.index_path))
+    def _persist(self, index: faiss.Index | None = None):
+        target_index = index or self.index
+        faiss.write_index(target_index, str(self.index_path))
         # salva meta como pares (idx -> dict)
         items = np.array(list(self.meta.items()), dtype=object)
         np.save(self.store_path / "meta.npy", items, allow_pickle=True)

@@ -1,22 +1,26 @@
 # analysis_module.py
 import logging
 import json
-import re # Para _clean_llm_json_output
-from typing import List, Dict, Any
+import re  # Para _clean_llm_json_output
+from typing import Any, Dict, List, Protocol
 
-from langchain_community.chat_models import ChatOpenAI 
+from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain, SequentialChain
 from langchain.prompts import PromptTemplate
-from langchain_community.vectorstores import Chroma # Para type hinting do retriever
-from langchain.chains.question_answering import load_qa_chain # Para o chat_qa_chain
-from langchain.chains.summarize import load_summarize_chain # Para o summarize_chain
+from langchain.chains.question_answering import load_qa_chain  # Para o chat_qa_chain
+from langchain.chains.summarize import load_summarize_chain  # Para o summarize_chain
 
 logger = logging.getLogger(__name__)
 
+
+class RetrieverProtocol(Protocol):
+    def get_relevant_documents(self, query: str) -> List[Any]:
+        ...
+
 class CaseAnalyzer:
     def __init__(self, llm: ChatOpenAI, 
-                 case_retriever: Chroma.as_retriever, # Ou o tipo base do retriever
-                 kb_retriever: Chroma.as_retriever,
+                 case_retriever: RetrieverProtocol,
+                 kb_retriever: RetrieverProtocol,
                  map_prompt_pt: PromptTemplate, # Passando os prompts de resumo
                  combine_prompt_pt: PromptTemplate):
         self.llm = llm

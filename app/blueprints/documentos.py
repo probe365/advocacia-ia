@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, render_template, flash
+from flask import Blueprint, jsonify, request, render_template, g
 from werkzeug.utils import secure_filename
 from pipeline import Pipeline
 import logging
@@ -6,35 +6,23 @@ import logging
 bp = Blueprint('documentos', __name__)
 logger = logging.getLogger(__name__)
 
+
+def _build_pipeline(case_id: str) -> Pipeline:
+    """Instancia o Pipeline respeitando o tenant atual."""
+    tenant_id = getattr(g, 'tenant_id', None)
+    return Pipeline(case_id=case_id, tenant_id=tenant_id)
+
 @bp.route('/api/v1/processos/<id_processo>/documentos', methods=['POST'])
 def upload_documento(id_processo: str):
     if 'file' not in request.files:
         return jsonify({'erro':'Nenhum arquivo enviado.'}), 400
     file = request.files['file']
-    if file.filename == '':
+    if not file.filename:
         return jsonify({'erro':'Nenhum arquivo selecionado.'}), 400
     try:
         filename = secure_filename(file.filename)
         file_bytes = file.read()
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
-            case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=None
-        )
+        pipeline = _build_pipeline(id_processo)
         resultado = pipeline.processar_upload_de_arquivo(id_processo, filename, file_bytes)
         status = 200 if resultado.get('status') == 'sucesso' else 500
         return jsonify(resultado), status
@@ -45,25 +33,7 @@ def upload_documento(id_processo: str):
 @bp.route('/api/v1/processos/<id_processo>/documentos', methods=['GET'])
 def listar_documentos(id_processo: str):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
-            case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=None
-        )
+        pipeline = _build_pipeline(id_processo)
         docs = pipeline.list_unique_case_documents()
         return jsonify(docs)
     except Exception as e:
@@ -80,26 +50,10 @@ def ui_upload_documento(id_processo):
     if 'file' not in request.files:
         return "<div class='alert alert-danger'>Nenhum arquivo enviado.</div>"
     file = request.files['file']
+    if not file.filename:
+        return "<div class='alert alert-danger'>Nenhum arquivo selecionado.</div>"
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
-            case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=None
-        )
+        pipeline = _build_pipeline(id_processo)
         filename = secure_filename(file.filename)
         pipeline.processar_upload_de_arquivo(id_processo, filename, file.read())
         docs = pipeline.list_unique_case_documents()
@@ -111,25 +65,7 @@ def ui_upload_documento(id_processo):
 @bp.route('/processos/ui/<id_processo>/documentos/<path:filename>', methods=['DELETE'])
 def ui_delete_documento(id_processo, filename):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
-            case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=None
-        )
+        pipeline = _build_pipeline(id_processo)
         pipeline.delete_document_by_filename(filename)
         docs = pipeline.list_unique_case_documents()
         return render_template('_lista_documentos.html', documentos=docs)

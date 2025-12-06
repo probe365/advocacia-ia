@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, render_template, session
-from langchain_core.messages import HumanMessage, AIMessage
+from typing import Dict, List
 from pipeline import Pipeline
 from cadastro_manager import CadastroManager
 from flask import g
@@ -19,7 +19,14 @@ def chat_with_case(id_processo: str):
     try:
         query = dados['query']
         history_dict = dados.get('history', [])
-        history = [HumanMessage(content=m['content']) if m.get('role')=='user' else AIMessage(content=m.get('content')) for m in history_dict]
+        history: List[Dict[str, str]] = []
+        for msg in history_dict:
+            if not isinstance(msg, dict):
+                continue
+            history.append({
+                'role': str(msg.get('role') or 'user'),
+                'content': str(msg.get('content') or ''),
+            })
         pipeline = Pipeline(case_id=id_processo)
         resp = pipeline.chat(query, history)
         # persist turns
