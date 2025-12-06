@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+from psycopg2 import OperationalError
 
 # Ensure the repository root is importable when pytest sets cwd elsewhere
 _current = Path(__file__).resolve().parent
@@ -20,19 +21,28 @@ os.environ.setdefault('DB_PASSWORD', 'probe365')
 os.environ.setdefault('DB_PORT', '5432')
 os.environ.setdefault('DEFAULT_TENANT_ID', 'public')
 
+PYTEST_RUNNING = 'PYTEST_CURRENT_TEST' in os.environ
+
 try:
     from cadastro_manager import CadastroManager
     import psycopg2
     from psycopg2.extras import DictCursor
     
     # Get first existing client
-    conn = psycopg2.connect(
-        host=os.environ.get('DB_HOST'),
-        database=os.environ.get('DB_NAME'),
-        user=os.environ.get('DB_USER'),
-        password=os.environ.get('DB_PASSWORD'),
-        port=os.environ.get('DB_PORT')
-    )
+    try:
+        conn = psycopg2.connect(
+            host=os.environ.get('DB_HOST'),
+            database=os.environ.get('DB_NAME'),
+            user=os.environ.get('DB_USER'),
+            password=os.environ.get('DB_PASSWORD'),
+            port=os.environ.get('DB_PORT')
+        )
+    except OperationalError as error:
+        message = f"Skipping bulk upload test: {error}"
+        if PYTEST_RUNNING:
+            import pytest
+            pytest.skip(message)
+        raise
     
     cursor = conn.cursor(cursor_factory=DictCursor)
     cursor.execute("SELECT id_cliente, nome_completo FROM clientes LIMIT 1")
