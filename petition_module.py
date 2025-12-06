@@ -3,7 +3,7 @@ from email import utils
 import logging
 import json
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Iterable
 from datetime import datetime # Movida para cá
 
 from langchain_openai import ChatOpenAI
@@ -14,6 +14,57 @@ from utils.text_helpers import extract_text, format_date_pt, clean_text, normali
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+
+def _sanitize_narrativa(
+    narrativa: str | None,
+    fatos: str | None,
+    contexto: str | None = "cível",
+) -> str:
+    """Normalize the narrative text prior to generating a petition.
+
+    The helper merges relevant sentences from the provided narrative/facts and
+    favors domain-specific content when a context is provided. It intentionally
+    keeps the logic lightweight so it can run during unit tests without pulling
+    extra dependencies.
+    """
+
+    narrativa = (narrativa or "").strip()
+    fatos = (fatos or "").strip()
+    contexto_normalizado = (contexto or "").lower()
+
+    def _split_sentences(text: str) -> Iterable[str]:
+        if not text:
+            return []
+        return [sent.strip() for sent in re.split(r"(?<=[.!?])\s+", text) if sent.strip()]
+
+    def _merge_text(parts: Iterable[str]) -> str:
+        seen: set[str] = set()
+        sentences: list[str] = []
+        for part in parts:
+            for sentence in _split_sentences(part):
+                if sentence not in seen:
+                    seen.add(sentence)
+                    sentences.append(sentence)
+        return " ".join(sentences).strip()
+
+    if not narrativa and not fatos:
+        return ""
+
+    if "honor" in contexto_normalizado:
+        honor_sentences = [
+            sentence
+            for sentence in _split_sentences(fatos) + _split_sentences(narrativa)
+            if any(token in sentence.lower() for token in ("honor", "advog"))
+        ]
+        if honor_sentences:
+            return " ".join(honor_sentences)
+        return fatos or narrativa
+
+    if "consum" in contexto_normalizado:
+        return _merge_text([narrativa, fatos]) or fatos or narrativa
+
+    return fatos or narrativa
 
 
 class PetitionGenerator:
