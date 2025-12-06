@@ -2,6 +2,16 @@
 """Test bulk upload with tipo_parte using real client"""
 import os
 import sys
+from pathlib import Path
+
+# Ensure the repository root is importable when pytest sets cwd elsewhere
+_current = Path(__file__).resolve().parent
+for candidate in (_current, *_current.parents):
+    if (candidate / "cadastro_manager.py").exists():
+        candidate_str = str(candidate)
+        if candidate_str not in sys.path:
+            sys.path.insert(0, candidate_str)
+        break
 
 os.environ.setdefault('DB_HOST', 'localhost')
 os.environ.setdefault('DB_NAME', 'advocacia_ia')
