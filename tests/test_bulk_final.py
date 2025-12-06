@@ -21,7 +21,7 @@ os.environ.setdefault('DB_PASSWORD', 'probe365')
 os.environ.setdefault('DB_PORT', '5432')
 os.environ.setdefault('DEFAULT_TENANT_ID', 'public')
 
-PYTEST_RUNNING = 'PYTEST_CURRENT_TEST' in os.environ
+PYTEST_RUNNING = 'pytest' in sys.modules or 'PYTEST_CURRENT_TEST' in os.environ
 
 try:
     from cadastro_manager import CadastroManager
@@ -38,10 +38,9 @@ try:
             port=os.environ.get('DB_PORT')
         )
     except OperationalError as error:
-        message = f"Skipping bulk upload test: {error}"
         if PYTEST_RUNNING:
             import pytest
-            pytest.skip(message)
+            pytest.skip(f"Bulk upload test skipped: {error}")
         raise
     
     cursor = conn.cursor(cursor_factory=DictCursor)
@@ -115,6 +114,14 @@ try:
     
     print("\n🎉 Test complete!")
     
+except OperationalError as error:
+    if PYTEST_RUNNING:
+        import pytest
+        pytest.skip(f"Bulk upload test skipped: {error}")
+    print(f"\n❌ ERROR: {error}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 except Exception as e:
     print(f"\n❌ ERROR: {e}")
     import traceback
