@@ -16,10 +16,11 @@ pytestmark = pytest.mark.skipif(
     reason="Pipeline integration tests require RUN_PIPELINE_TESTS=1 and real services",
 )
 
-if not SHOULD_SKIP:
+
+def _load_pipeline():
     from pipeline import Pipeline
-else:  # pragma: no cover - skip scenario
-    Pipeline = None  # type: ignore[assignment]
+
+    return Pipeline
 
 # Configurar logging detalhado
 logging.basicConfig(
@@ -36,7 +37,8 @@ def analyze_firac_petition_divergence(case_id: str):
     print(f"ANÁLISE DE DIVERGÊNCIAS FIRAC vs PETIÇÃO - Caso: {case_id}")
     print("="*80)
     
-    pipeline = Pipeline(case_id=case_id)
+    pipeline_cls = _load_pipeline()
+    pipeline = pipeline_cls(case_id=case_id)
 
     # 1. Gerar FIRAC
     print("\n[PASSO 1] Gerando análise FIRAC...")

@@ -8,13 +8,15 @@ pytestmark = pytest.mark.skipif(
     reason="Pipeline integration tests require RUN_PIPELINE_TESTS=1 and real services",
 )
 
-if not SHOULD_SKIP:
+
+def _load_pipeline():
     from utils.pipeline import Pipeline
-else:  # pragma: no cover - skip scenario
-    Pipeline = None  # type: ignore[assignment]
+
+    return Pipeline
 
 def test_firac_integrity():
-    pipeline = Pipeline(case_id="TESTE")
+    pipeline_cls = _load_pipeline()
+    pipeline = pipeline_cls(case_id="TESTE")
     firac_result = pipeline.generate_firac()
     firac_data = firac_result.get('data', {"facts": "", "issue": "", "rules": "", "application": "", "conclusion": ""})
     for campo in ["facts", "issue", "rules", "application", "conclusion"]:
