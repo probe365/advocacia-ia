@@ -6,10 +6,12 @@ from pipeline import Pipeline
 from werkzeug.utils import secure_filename
 import os, hashlib, logging, base64
 import re
+import openai
+from typing import Optional
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    flash, current_app, send_file, abort, g, session, jsonify
+    flash, current_app, send_file, abort, g, session, jsonify, Response
 )
 
 from mimetypes import guess_type
@@ -17,6 +19,22 @@ from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
+
+
+def _build_pipeline(case_id: str, tenant_id: Optional[str] = None) -> Pipeline:
+    """Create a Pipeline with proper defaults instead of stubbed handlers."""
+    base_cases_dir = Path("./cases")
+    try:
+        openai_client = openai.OpenAI()
+    except Exception as exc:
+        logger.warning("Falha ao instanciar OpenAI client: %s", exc)
+        openai_client = None
+    return Pipeline(
+        case_id=case_id,
+        openai_client=openai_client,
+        base_cases_dir=base_cases_dir,
+        tenant_id=tenant_id,
+    )
 
 def _compute_case_code(raw_id: str) -> str:
     """Retorna código curto estável (caso_<8hex>). Se já vier no formato, mantém para evitar re-hash."""
@@ -287,28 +305,9 @@ def painel_processo(id_processo):
     except Exception:
         advogado = None
     # Docs & pipeline context could be loaded here
-    from pathlib import Path
-    import openai
-    from ingestion_module import IngestionHandler
-    # Inicialização dos componentes obrigatórios
-    base_cases_dir = Path("./cases")
-    openai_client = openai.OpenAI()
-    # Para inicializar o IngestionHandler, é necessário obter os argumentos corretos
-    # Estes argumentos normalmente são: nlp_processor, text_splitter, label_map, case_store, kb_store
-    # Como exemplo, inicialize com None ou valores padrão se não tiver contexto suficiente
-    ingestion_handler = IngestionHandler(
-        nlp_processor=None,
-        text_splitter=None,
-        label_map=None,
-        case_store=None,
-        kb_store=None
-    )
-    pipeline = Pipeline(
+    pipeline = _build_pipeline(
         case_id=id_processo,
-        ingestion_handler=ingestion_handler,
-        openai_client=openai_client,
-        base_cases_dir=base_cases_dir,
-        tenant_id=getattr(g, 'tenant_id', None)
+        tenant_id=getattr(g, 'tenant_id', None),
     )
     documentos = pipeline.list_unique_case_documents()
     chat_history = session.get(f'chat_history_{id_processo}', [])
@@ -398,24 +397,9 @@ def ui_upload_form(id_processo):
 @processos_bp.route('/ui/<id_processo>/resumo', methods=['POST'])
 def ui_resumo(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or request.values.get('focus') or '').strip()
@@ -462,24 +446,9 @@ def ui_resumo(id_processo):
 @processos_bp.route('/ui/<id_processo>/export/resumo', methods=['POST'])
 def ui_export_resumo(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -496,24 +465,9 @@ def ui_export_resumo(id_processo):
 @processos_bp.route('/ui/<id_processo>/export/resumo/pdf', methods=['POST'])
 def ui_export_resumo_pdf(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -572,24 +526,9 @@ def ui_export_resumo_pdf(id_processo):
 def ui_download_export(id_processo, filename):
     """Serve arquivos de export (PDF/TXT) com diagnóstico detalhado em caso de falha."""
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         export_dir = pipeline.case_dir / 'exports'
@@ -616,24 +555,9 @@ def ui_download_export(id_processo, filename):
 @processos_bp.route('/ui/<id_processo>/analise/firac', methods=['POST'])
 def ui_analise_firac(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -660,24 +584,9 @@ def ui_analise_firac(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/firac/export/pdf', methods=['POST'])
 def ui_export_firac_pdf(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -820,24 +729,9 @@ def ui_peticao_form(id_processo):
 def ui_peticao_gerar(id_processo):
     """Gera rascunho de petição inicial usando FIRAC + inputs. Retorna bloco HTML com texto e export options."""
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         proc = service.get_processo(id_processo) or {}
@@ -933,24 +827,9 @@ def ui_peticao_gerar(id_processo):
 @processos_bp.route('/ui/<id_processo>/peticao/export/pdf', methods=['GET'])
 def ui_peticao_export_pdf(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         proc = service.get_processo(id_processo) or {}
@@ -1029,24 +908,9 @@ def ui_peticao_export_docx(id_processo):
             from docx import Document
         except ImportError:
             return "<div class='text-danger'>Dependência 'python-docx' não instalada. Instale para exportar DOCX: pip install python-docx</div>"
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         proc = service.get_processo(id_processo) or {}
@@ -1112,24 +976,9 @@ def ui_peticao_export_docx(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/riscos', methods=['POST'])
 def ui_analise_riscos(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -1141,24 +990,9 @@ def ui_analise_riscos(id_processo):
 @processos_bp.route('/ui/<id_processo>/analise/proximos_passos', methods=['POST'])
 def ui_analise_proximos_passos(id_processo):
     try:
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=getattr(g, 'tenant_id', None)
+            tenant_id=getattr(g, 'tenant_id', None),
         )
 
         focus = (request.form.get('focus') or '').strip()
@@ -1206,24 +1040,9 @@ def documentos_processo(id_processo):
 def ui_upload_documento(id_processo):
     try:
         tenant_id = getattr(g, 'tenant_id', None)
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
         )
 
         f = request.files.get('file')
@@ -1335,10 +1154,7 @@ def ui_upload_documento(id_processo):
         return f"<div class='alert alert-danger mt-2'>Erro no upload: {e}</div>", 500
 
 
-from pathlib import Path
 import html
-
-from pathlib import Path
 
 @processos_bp.route('/ui/<id_processo>/documentos/preview/<path:filename>', methods=['GET'])
 @login_required
@@ -1353,24 +1169,9 @@ def ui_preview_documento(id_processo, filename):
     """
     try:
         tenant_id = getattr(g, 'tenant_id', None) or "default"
-        from pathlib import Path
-        import openai
-        from ingestion_module import IngestionHandler
-        base_cases_dir = Path("./cases")
-        openai_client = openai.OpenAI()
-        ingestion_handler = IngestionHandler(
-            nlp_processor=None,
-            text_splitter=None,
-            label_map=None,
-            case_store=None,
-            kb_store=None
-        )
-        pipeline = Pipeline(
+        pipeline = _build_pipeline(
             case_id=id_processo,
-            ingestion_handler=ingestion_handler,
-            openai_client=openai_client,
-            base_cases_dir=base_cases_dir,
-            tenant_id=tenant_id
+            tenant_id=tenant_id,
         )
 
         uploads_dir = pipeline.case_dir / 'uploads'
@@ -1563,16 +1364,6 @@ def ui_chat_clear(id_processo):
         return f"<div class='alert alert-danger p-2 m-2'>Erro ao limpar chat: {e}</div>", 500
 
 
-from pathlib import Path
-
-from flask import send_file, abort, current_app, g
-from mimetypes import guess_type
-from pathlib import Path
-from cadastro_manager import CadastroManager
-
-
-from flask import send_file, abort, Response, current_app
-
 @processos_bp.route("/ui/<id_processo>/arquivo/<path:nome_arquivo>")
 @login_required
 def ui_arquivo(id_processo, nome_arquivo):
@@ -1582,8 +1373,6 @@ def ui_arquivo(id_processo, nome_arquivo):
     - Considera multi-tenant (tenant_id no caminho)
     - nome_arquivo pode ser só "arquivo.pdf" ou "uploads/arquivo.pdf"
     """
-    from pathlib import Path
-
     tenant = getattr(g, "tenant_id", "public")
 
     # Raiz do projeto: ...\advocacia-ia-app

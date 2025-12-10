@@ -104,42 +104,87 @@ class CadastroManager:
         self._execute_query(query, params)
 
     def get_advogados(self) -> List[Dict[str, Any]]:
+        if self.multi_tenant:
+            return self._execute_query(
+                "SELECT * FROM advogados WHERE tenant_id = %s ORDER BY nome",
+                (self.tenant_id,),
+                fetch="all",
+            )
         return self._execute_query("SELECT * FROM advogados ORDER BY nome", fetch="all")
 
     def get_advogado_by_oab(self, oab: str) -> Optional[Dict[str, Any]]:
         """Retorna um único advogado pela OAB (ou None)."""
         if not oab:
             return None
+        if self.multi_tenant:
+            return self._execute_query(
+                "SELECT * FROM advogados WHERE oab = %s AND tenant_id = %s",
+                (oab, self.tenant_id),
+                fetch="one",
+            )
         return self._execute_query("SELECT * FROM advogados WHERE oab = %s", (oab,), fetch="one")
 
     def save_advogado(self, dados: Dict[str, Any], oab_original: Optional[str] = None):
-        if oab_original:
-            query = "UPDATE advogados SET oab = %s, nome = %s, email = %s, area_atuacao = %s WHERE oab = %s"
-            params = cast(
-                Params,
-                (
-                    dados.get("oab"),
-                    dados.get("nome"),
-                    dados.get("email"),
-                    dados.get("area_atuacao"),
-                    oab_original,
-                ),
-            )
+        if self.multi_tenant:
+            if oab_original:
+                query = "UPDATE advogados SET oab = %s, nome = %s, email = %s, area_atuacao = %s WHERE oab = %s AND tenant_id = %s"
+                params = cast(
+                    Params,
+                    (
+                        dados.get("oab"),
+                        dados.get("nome"),
+                        dados.get("email"),
+                        dados.get("area_atuacao"),
+                        oab_original,
+                        self.tenant_id,
+                    ),
+                )
+            else:
+                query = "INSERT INTO advogados (oab, nome, email, area_atuacao, tenant_id) VALUES (%s, %s, %s, %s, %s)"
+                params = cast(
+                    Params,
+                    (
+                        dados.get("oab"),
+                        dados.get("nome"),
+                        dados.get("email"),
+                        dados.get("area_atuacao"),
+                        self.tenant_id,
+                    ),
+                )
         else:
-            query = "INSERT INTO advogados (oab, nome, email, area_atuacao) VALUES (%s, %s, %s, %s)"
-            params = cast(
-                Params,
-                (
-                    dados.get("oab"),
-                    dados.get("nome"),
-                    dados.get("email"),
-                    dados.get("area_atuacao"),
-                ),
-            )
+            if oab_original:
+                query = "UPDATE advogados SET oab = %s, nome = %s, email = %s, area_atuacao = %s WHERE oab = %s"
+                params = cast(
+                    Params,
+                    (
+                        dados.get("oab"),
+                        dados.get("nome"),
+                        dados.get("email"),
+                        dados.get("area_atuacao"),
+                        oab_original,
+                    ),
+                )
+            else:
+                query = "INSERT INTO advogados (oab, nome, email, area_atuacao) VALUES (%s, %s, %s, %s)"
+                params = cast(
+                    Params,
+                    (
+                        dados.get("oab"),
+                        dados.get("nome"),
+                        dados.get("email"),
+                        dados.get("area_atuacao"),
+                    ),
+                )
         self._execute_query(query, params)
 
     def delete_advogado(self, oab: str):
-        self._execute_query("DELETE FROM advogados WHERE oab = %s", (oab,))
+        if self.multi_tenant:
+            self._execute_query(
+                "DELETE FROM advogados WHERE oab = %s AND tenant_id = %s",
+                (oab, self.tenant_id),
+            )
+        else:
+            self._execute_query("DELETE FROM advogados WHERE oab = %s", (oab,))
 
     def get_clientes(self) -> List[Dict[str, Any]]:
         if self.multi_tenant:
