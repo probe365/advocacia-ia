@@ -15,6 +15,7 @@ from moviepy.editor import VideoFileClip
 import os # Para remoção de arquivos temporários em add_video
 import tempfile
 import openai
+import platform
 
 from openai import OpenAI
 
@@ -34,7 +35,17 @@ from utils_arq import extract_text_from_pdf_bytes, extract_text_from_txt_bytes
 
 # Choose the correct import based on your folder structure and remove the others.
 from datajud import fetch_datajud_jurisprudencia, fetch_datajud_por_processo, fetch_datajud_bool_query
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+_tesseract_cmd = os.getenv("TESSERACT_CMD")
+if not _tesseract_cmd:
+    if platform.system().lower().startswith("win"):
+        _tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    else:
+        _tesseract_cmd = "/usr/bin/tesseract"
+pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
+if not Path(_tesseract_cmd).exists():
+    logging.getLogger(__name__).warning(
+        "Tesseract binary not found at %s; OCR uploads may fail", _tesseract_cmd
+    )
 
 logger = logging.getLogger(__name__)
 
