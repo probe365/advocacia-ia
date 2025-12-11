@@ -111,6 +111,42 @@ def _parse_firac_raw_text(raw_text: str) -> dict:
     
     return result
 
+
+def _fallback_peticao_text(dados_ui: dict) -> str:
+    """Builds a minimal deterministic petition when AI generation fails."""
+    juizo = dados_ui.get('juizo', {})
+    autor = dados_ui.get('autor', {}).get('nome_completo_ou_razao_social', 'AUTOR')
+    reu = dados_ui.get('reu', {}).get('nome', 'RÉU')
+    valor = dados_ui.get('outros', {}).get('valor_causa_num', '0,00')
+    valor_ext = dados_ui.get('outros', {}).get('valor_causa_ext', '')
+    provas = dados_ui.get('outros', {}).get('texto_provas_especificas', '')
+    vara = juizo.get('vara') or ''
+    esp = juizo.get('especialidade') or 'Cível'
+    comarca = juizo.get('comarca') or '____'
+    uf = juizo.get('uf') or 'XX'
+    header = (f"EXCELENTISSIMO SENHOR DOUTOR JUIZ DE DIREITO DA {vara or '___'} "
+              f"VARA {esp.upper()} DA COMARCA DE {comarca} - {uf}\n\n")
+    corpo = (
+        f"{autor}, por intermédio de seu advogado, vem propor a presente AÇÃO em face de {reu}.\n\n"
+        "DOS FATOS\n"
+        "Descreva aqui os principais acontecimentos do caso.\n\n"
+        "DOS FUNDAMENTOS\n"
+        "Indique os dispositivos legais e entendimentos jurisprudenciais pertinentes.\n\n"
+        "DOS PEDIDOS\n"
+        "a) citação da parte ré para responder aos termos da ação;\n"
+        "b) procedência dos pedidos conforme exposto;\n"
+        "c) produção de todas as provas em direito admitidas"
+    )
+    if provas:
+        corpo += f", com destaque para: {provas}."
+    else:
+        corpo += "."
+    corpo += (
+        "\n\nDO VALOR DA CAUSA\n"
+        f"Dá-se à causa o valor de R$ {valor} ({valor_ext or 'valor por extenso não informado'})."
+    )
+    return header + corpo
+
 processos_bp = Blueprint('processos', __name__, url_prefix='/processos')
 service = CadastroService()
 
@@ -759,15 +795,15 @@ def ui_peticao_gerar(id_processo):
         proc = service.get_processo(id_processo) or {}
         cliente = service.get_cliente(proc.get('id_cliente')) if proc.get('id_cliente') else None
         advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
-        firac = pipeline.generate_firac()
-        
-        # DEBUG: Log what we got from generate_firac
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"[PETITION DEBUG] FIRAC returned: {firac}")
+        try:
+            firac = pipeline.generate_firac()
+            logger.info("[PETITION DEBUG] FIRAC returned: %s", firac)
+        except Exception as firac_exc:
+            logger.warning("[PETITION DEBUG] generate_firac falhou: %s", firac_exc, exc_info=True)
+            firac = {'data': {}, 'raw': ''}
         
         data_firac = firac.get('data') or {}
-        logger.info(f"[PETITION DEBUG] data_firac extracted: {data_firac}")
+        logger.info("[PETITION DEBUG] data_firac extracted: %s", data_firac)
         
         # If data is None/empty but we have raw text, use the improved parser
         if not data_firac and firac.get('raw'):
@@ -830,13 +866,17 @@ def ui_peticao_gerar(id_processo):
         facts_str = '\n'.join(facts_raw) if isinstance(facts_raw, list) else str(facts_raw)
         rules_str = '\n'.join(rules_raw) if isinstance(rules_raw, list) else str(rules_raw)
         
-        peticao_txt = pipeline.generate_peticao_rascunho(dados_ui, {
-            'facts': facts_str,
-            'issue': data_firac.get('issue', ''),
-            'rules': rules_str,
-            'application': data_firac.get('application', ''),
-            'conclusion': data_firac.get('conclusion', '')
-        })
+        try:
+            peticao_txt = pipeline.generate_peticao_rascunho(dados_ui, {
+                'facts': facts_str,
+                'issue': data_firac.get('issue', ''),
+                'rules': rules_str,
+                'application': data_firac.get('application', ''),
+                'conclusion': data_firac.get('conclusion', '')
+            })
+        except Exception as gen_exc:
+            logger.warning("[PETITION DEBUG] generate_peticao_rascunho falhou, usando fallback: %s", gen_exc, exc_info=True)
+            peticao_txt = _fallback_peticao_text(dados_ui)
         # Sanitização de mensagens de ausência de dados para evitar texto de desculpas
         for marker in ["Desculpe", "Por favor, forneça", "não forneceu a conclusão"]:
             if marker in peticao_txt:
@@ -844,7 +884,8 @@ def ui_peticao_gerar(id_processo):
         safe = peticao_txt.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')
         return f"<div class='mt-3'><div class='d-flex justify-content-between align-items-center flex-wrap gap-2'><h6 class='mb-2'>Rascunho da Petição</h6><div class='btn-group btn-group-sm'><button class='btn btn-outline-secondary' hx-get='/processos/ui/{id_processo}/peticao/export/pdf' hx-target='#peticao-export-area' hx-swap='innerHTML'>Exportar PDF</button><button class='btn btn-outline-secondary' hx-get='/processos/ui/{id_processo}/peticao/export/docx' hx-target='#peticao-export-area' hx-swap='innerHTML'>Exportar DOCX</button></div></div><div class='border rounded p-2 bg-body-tertiary' style='max-height:55vh;overflow:auto;font-size:0.8rem;font-family:monospace;'>{safe}</div><div id='peticao-export-area' class='mt-2 small text-muted'></div></div>"
     except Exception as e:
-        return f"<div class='alert alert-danger mt-2'>Erro ao gerar petição: {e}</div>", 500
+        logger.exception("Falha inesperada ao gerar petição", exc_info=True)
+        return f"<div class='alert alert-danger mt-2'>Erro ao gerar petição: {e}</div>", 200
 
 @processos_bp.route('/ui/<id_processo>/peticao/export/pdf', methods=['GET'])
 def ui_peticao_export_pdf(id_processo):
