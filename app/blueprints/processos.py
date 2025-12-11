@@ -698,7 +698,10 @@ def ui_peticao_form(id_processo):
                         </div>
                         <div class='col-md-6'>
                             <label class='form-label small mb-0'>Autor</label>
-                            <input name='autor_nome' class='form-control form-control-sm' value='{autor_nome}' readonly>
+                            <input name='autor_nome'
+                                   class='form-control form-control-sm'
+                                   value='{autor_nome}'
+                                   placeholder='Nome completo do autor'>
                         </div>
                         <div class='col-md-6'>
                             <label class='form-label small mb-0'>Réu (nome completo)</label>
@@ -721,6 +724,25 @@ def ui_peticao_form(id_processo):
                         </div>
                     </div>
                 </form>
+                <script>
+                (function ensureAutorEditable(){{
+                    const autorInput = document.querySelector("#peticao-form-area input[name='autor_nome']");
+                    if(!autorInput){{
+                        return;
+                    }}
+                    autorInput.removeAttribute('readonly');
+                    autorInput.removeAttribute('disabled');
+                    autorInput.readOnly = false;
+                    autorInput.disabled = false;
+                    autorInput.style.pointerEvents = 'auto';
+                    autorInput.classList.remove('disabled');
+                    autorInput.addEventListener('focus', function(){{
+                        this.readOnly = false;
+                        this.disabled = false;
+                        this.style.pointerEvents = 'auto';
+                    }});
+                }})();
+                </script>
                 """
         except Exception as e:
                 return f"<div class='alert alert-danger'>Erro ao montar formulário: {e}</div>"
