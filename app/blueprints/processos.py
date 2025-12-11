@@ -793,7 +793,9 @@ def ui_peticao_gerar(id_processo):
         )
 
         proc = service.get_processo(id_processo) or {}
-        cliente = service.get_cliente(proc.get('id_cliente')) if proc.get('id_cliente') else None
+        id_cliente_raw = proc.get('id_cliente')
+        id_cliente = str(id_cliente_raw) if id_cliente_raw is not None else None
+        cliente = service.get_cliente(id_cliente) if id_cliente else None
         advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
         try:
             firac = pipeline.generate_firac()
