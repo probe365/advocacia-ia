@@ -30,7 +30,14 @@ class CadastroManager:
             'host': os.getenv('DB_HOST'),
             'port': os.getenv('DB_PORT')
         }
-        self.tenant_id = tenant_id or os.getenv("DEFAULT_TENANT_ID", "public")
+        default_tenant = os.getenv("DEFAULT_TENANT_ID", "public")
+        if tenant_id is None:
+            self.tenant_id = default_tenant
+        else:
+            # Garantir que o tenant seja sempre string para evitar erros "text = integer"
+            self.tenant_id = str(tenant_id)
+        if not self.tenant_id:
+            self.tenant_id = default_tenant
         self.multi_tenant = os.getenv("MULTI_TENANT", "0") == "1"
         # Tabelas agora gerenciadas exclusivamente por Alembic migrations.
 
