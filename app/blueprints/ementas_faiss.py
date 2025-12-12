@@ -1,12 +1,16 @@
 # app/blueprints/ementas_faiss.py
-from flask import Blueprint, request, render_template, jsonify, current_app
+from flask import Blueprint, request, render_template, jsonify, current_app, g
 from flask_login import login_required
 from pathlib import Path
 import numpy as np
 import pickle
 import faiss
-import glob
-import os
+
+from app.utils.case_summary import (
+    get_case_summary,
+    candidate_case_ids,
+    base_case_dirs,
+)
 
 # 🔹 NOME DO BLUEPRINT CASA COM app/__init__.py
 ementas_faiss = Blueprint("ementas_faiss", __name__, url_prefix="/ementas/faiss")
@@ -48,75 +52,6 @@ def _ensure_faiss():
     return _index, _meta
 
 
-# --------------------------
-# Resumo do Caso (para FAISS)
-# --------------------------
-def _read_text_if_exists(p: Path) -> str:
-    try:
-        if p.exists():
-            return p.read_text(encoding="utf-8").strip()
-    except Exception:
-        pass
-    return ""
-
-
-def get_resumo_do_caso(case_id: str) -> str:
-    """
-    Tenta ler o resumo do caso em vários locais conhecidos.
-    Aceita tanto "caso_8d9e73b3" quanto "8d9e73b3" como input.
-    Ordem:
-      1) data/cases/<id>/resumo.txt
-      2) cases/<id>/resumo.txt
-      3) data/cases/<id>/cache/summary_*.txt (mais recente)
-      4) cases/<id>/cache/summary_*.txt (mais recente)
-      5) fallback: Pipeline.summarize_with_cache
-    """
-    if not case_id:
-        return ""
-
-    # Normalizar o case_id - aceitar tanto "8d9e73b3" quanto "caso_8d9e73b3"
-    if not case_id.startswith("caso_"):
-        case_id = f"caso_{case_id}"
-
-    # 1/2) caminhos diretos
-    candidates = [
-        Path(f"data/cases/{case_id}/resumo.txt"),
-        Path(f"cases/{case_id}/resumo.txt"),
-    ]
-    for c in candidates:
-        txt = _read_text_if_exists(c)
-        if txt:
-            return txt
-
-    # 3/4) cache (pega o arquivo de summary mais recente)
-    for base in (Path(f"data/cases/{case_id}/cache"), Path(f"cases/{case_id}/cache")):
-        try:
-            paths = sorted(glob.glob(str(base / "summary_*.txt")))
-            if paths:
-                paths_sorted = sorted(
-                    paths,
-                    key=lambda p: Path(p).stat().st_mtime,
-                    reverse=True,
-                )
-                txt = _read_text_if_exists(Path(paths_sorted[0]))
-                if txt:
-                    return txt
-        except Exception:
-            pass
-
-    # 5) Fallback: tentar Pipeline.summarize_with_cache se disponível
-    try:
-        from pipeline import Pipeline
-        pipeline = Pipeline(case_id=case_id)
-        resumo, _ = pipeline.summarize_with_cache("Resumo geral do caso")
-        if resumo and resumo.strip():
-            return resumo.strip()
-    except Exception:
-        pass
-
-    return ""
-
-
 @ementas_faiss.get("/resumo", endpoint="resumo_faiss")
 def resumo_faiss():
     """Endpoint chamado pela aba Ementas para obter o resumo do caso."""
@@ -124,23 +59,19 @@ def resumo_faiss():
     if not case_id:
         return jsonify(ok=False, error="case_id ausente"), 400
 
-    original_case_id = case_id
-    if not case_id.startswith("caso_"):
-        case_id = f"caso_{case_id}"
-
-    resumo = get_resumo_do_caso(case_id)
+    tenant_id = getattr(g, "tenant_id", None)
+    resumo = get_case_summary(case_id, tenant_id=tenant_id)
     if not resumo:
-        case_paths = [f"cases/{case_id}", f"data/cases/{case_id}"]
-        existing_paths = [p for p in case_paths if os.path.exists(p)]
+        candidates = candidate_case_ids(case_id)
+        search_paths = [base / cid for base in base_case_dirs(tenant_id) for cid in candidates]
+        existing_paths = [str(path) for path in search_paths if path.exists()]
 
-        error_msg = (
-            f"Resumo não encontrado para '{original_case_id}' "
-            f"(normalizado: '{case_id}')"
-        )
+        tenant_segment = tenant_id or "default"
+        error_msg = f"Resumo não encontrado para '{case_id}' (tenant={tenant_segment})."
         if existing_paths:
-            error_msg += f". Pasta encontrada: {existing_paths[0]}"
+            error_msg += f" Pasta encontrada: {existing_paths[0]}"
         else:
-            error_msg += f". Pastas verificadas: {case_paths}"
+            error_msg += " Pastas verificadas: " + ", ".join(str(p) for p in search_paths)
 
         return jsonify(ok=False, error=error_msg), 404
 

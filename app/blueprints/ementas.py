@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, jsonify
+from flask import Blueprint, request, render_template, jsonify, g
 import html
 from flask_login import login_required
 from pipeline import Pipeline
@@ -9,6 +9,7 @@ import os
 # duplicate imports removed; the blueprint is defined later in this file so no relative import is needed
 
 from app.services.ementas_kb_store import EmentasFAISSStore
+from app.utils.case_summary import get_case_summary
 
 # Base local para o índice
 _EMENTAS_DIR = os.environ.get("EMENTAS_STORE_DIR", "data/ementas_faiss")
@@ -17,6 +18,12 @@ store = EmentasFAISSStore(_EMENTAS_DIR)
 from app.model_server import model_server
 
 ementas_bp = Blueprint('ementas', __name__, url_prefix='/ementas')
+
+
+def _build_pipeline(case_id: str) -> Pipeline:
+    """Instancia Pipeline respeitando o tenant atual (g.tenant_id)."""
+    tenant_id = getattr(g, 'tenant_id', None)
+    return Pipeline(case_id=case_id, tenant_id=tenant_id)
 
 
 # --- Healthcheck simples ---
@@ -43,9 +50,14 @@ def ementas_index():
 @ementas_bp.route('/ui/painel', methods=['GET'])
 @login_required
 def painel_ementas():
-    p = Pipeline(case_id='kb_dummy')
+    current_case_id = (request.args.get('case_id') or '').strip()
+    p = _build_pipeline('kb_dummy')
     arquivos = p.get_indexed_ementa_filenames()
-    return render_template('ementas.html', ementa_files=arquivos)
+    return render_template(
+        'ementas.html',
+        ementa_files=arquivos,
+        current_case_id=current_case_id
+    )
 
 
 @ementas_bp.route('/ui/classificar', methods=['POST'])
@@ -89,7 +101,7 @@ def classificar_texto():
 @ementas_bp.route('/ui/upload', methods=['POST'])
 @login_required
 def upload_ementas():
-    p = Pipeline(case_id='kb_dummy')
+    p = _build_pipeline('kb_dummy')
     files = request.files.getlist('files') or []
     if not files:
         return "<div class='alert alert-warning p-2'>Nenhum arquivo enviado.</div>", 400
@@ -133,8 +145,9 @@ def ementas_search():
 def obter_resumo_case(case_id: str):
     """Retorna um resumo breve do caso para pré-preencher a busca (limite defensivo)."""
     try:
-        pipeline = Pipeline(case_id=case_id)
-        resumo, _ = pipeline.summarize_with_cache('Resumo geral do caso')
+        resumo = get_case_summary(case_id, tenant_id=getattr(g, 'tenant_id', None))
+        if not resumo:
+            return "<div class='alert alert-warning p-2'>Resumo indisponível para este caso.</div>", 404
         resumo = resumo[:5000]  # limite para não inundar textarea
         return f"<textarea class='form-control form-control-sm mb-2' name='q' id='ementa-query-box' rows='6'>{resumo}</textarea>"
     except Exception as e:
@@ -150,14 +163,14 @@ def buscar_ementas():
     # Se modo resumo e texto vazio mas case_id fornecido, tentar gerar.
     if mode == 'resumo' and (not texto_query) and case_id:
         try:
-            pipeline_case = Pipeline(case_id=case_id)
+            pipeline_case = _build_pipeline(case_id)
             texto_query, _ = pipeline_case.summarize_with_cache('Resumo geral do caso')
             texto_query = (texto_query or '').strip()[:8000]
         except Exception:
             pass
     if not texto_query:
         return "<div class='alert alert-warning p-2'>Consulta vazia.</div>", 400
-    p = Pipeline(case_id='kb_dummy')
+    p = _build_pipeline('kb_dummy')
     pairs = p.find_similar_ementas_with_scores(texto_query, top_k=k)
     if not pairs:
         return "<div class='alert alert-info p-2'>Nenhum resultado.</div>"
@@ -186,10 +199,10 @@ def buscar_ementas():
         snippet_full = doc.page_content.strip()
         snippet_display = snippet_full[:480].replace('\n',' ') + ('...' if len(snippet_full) > 480 else '')
         safe_copy = html.escape(snippet_full[:10000], quote=True).replace("'", "&#39;")
-        
+
         # Create a safe filename from the original filename
         safe_filename = fname.replace('.pdf', '').replace('.txt', '').replace(' ', '_')[:50]
-        
+
         out.append(
             "<div class='list-group-item position-relative'>"
             f"<div class='d-flex justify-content-between'><strong>{html.escape(fname)}</strong><span class='badge bg-secondary'>sim {sim:.3f}</span></div>"
@@ -332,7 +345,7 @@ document.getElementById('ementa-result-list').scrollIntoView({behavior:'smooth',
 @ementas_bp.route('/ui/delete/<filename>', methods=['DELETE'])
 @login_required
 def delete_ementa(filename):
-    p = Pipeline(case_id='kb_dummy')
+    p = _build_pipeline('kb_dummy')
     removed = p.delete_ementas_by_filename(filename)
     lista = p.get_indexed_ementa_filenames()
     html_list = render_template('_lista_ementas.html', ementa_files=lista)
@@ -384,7 +397,7 @@ def export_all_ementas_txt():
         return "Query vazia", 400
     
     # Get search results
-    p = Pipeline(case_id='kb_dummy')
+    p = _build_pipeline('kb_dummy')
     pairs = p.find_similar_ementas_with_scores(query, top_k=k)
     
     if not pairs:
