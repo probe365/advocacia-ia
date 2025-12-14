@@ -38,11 +38,11 @@ class CadastroManager:
             self.tenant_id = str(tenant_id)
         if not self.tenant_id:
             self.tenant_id = default_tenant
-        
-        # Se o usuário for um admin global, desativamos o filtro multi-tenant para ele nesta sessão.
-        self.multi_tenant = not is_global_admin
-        
-        # self.multi_tenant = os.getenv("MULTI_TENANT", "0") == "1"
+
+        multi_tenant_enabled = os.getenv("MULTI_TENANT", "0") == "1"
+        self.is_global_admin = is_global_admin
+        self.multi_tenant = multi_tenant_enabled and not self.is_global_admin
+
         # Tabelas agora gerenciadas exclusivamente por Alembic migrations.
 
     def _get_connection(self):
