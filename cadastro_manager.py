@@ -21,7 +21,7 @@ class CadastroManager:
     Suporte multi-tenant simples via coluna tenant_id (quando habilitado).
     """
 
-    def __init__(self, tenant_id: str | None = None):
+    def __init__(self, tenant_id: str | None = None, is_global_admin: bool = False):
         # Store connection parameters separately to avoid DSN parsing / encoding issues
         self._db_params = {
             'dbname': os.getenv('DB_NAME'),
@@ -38,7 +38,11 @@ class CadastroManager:
             self.tenant_id = str(tenant_id)
         if not self.tenant_id:
             self.tenant_id = default_tenant
-        self.multi_tenant = os.getenv("MULTI_TENANT", "0") == "1"
+        
+        # Se o usuário for um admin global, desativamos o filtro multi-tenant para ele nesta sessão.
+        self.multi_tenant = not is_global_admin
+        
+        # self.multi_tenant = os.getenv("MULTI_TENANT", "0") == "1"
         # Tabelas agora gerenciadas exclusivamente por Alembic migrations.
 
     def _get_connection(self):
