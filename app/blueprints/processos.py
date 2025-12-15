@@ -411,6 +411,7 @@ def ui_atualizar_tipo_parte(id_processo):
 
 # --- UI compatibility endpoints (previous /ui paths) ---
 @processos_bp.route('/ui/<id_cliente>/processos', methods=['GET'])
+@login_required
 def ui_list_processos_cliente(id_cliente):
     processos = service.list_processos_do_cliente(id_cliente)
     q = (request.args.get('q') or '').strip().lower()
