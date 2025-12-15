@@ -18,15 +18,15 @@ bp = Blueprint('auth', __name__)
 
 # Lazy manager per request (respects tenant in g if set)
 
-def _manager():
-    return CadastroManager(getattr(g, 'tenant_id', None))
+def _manager(global_admin: bool = False):
+    return CadastroManager(getattr(g, 'tenant_id', None), is_global_admin=global_admin)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user_data = _manager().get_usuario_by_username(username)
+        user_data = _manager(global_admin=True).get_usuario_by_username(username)
         if user_data and check_password_hash(user_data['password_hash'], password):
             user = User(user_data)
             login_user(user)
