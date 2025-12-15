@@ -1,7 +1,8 @@
 import time
 import uuid
 import logging
-from flask import g, request, current_app
+from flask import g, request, current_app, session
+from flask_login import current_user
 
 REQUEST_METRICS = {
     'total': 0,
@@ -10,9 +11,17 @@ REQUEST_METRICS = {
 
 def before_request():
     g.start_time = time.time()
-    # Tenant resolution (stub)
-    tenant = request.headers.get('X-Tenant-ID') or current_app.config.get('DEFAULT_TENANT_ID')
+
+    tenant = session.get('tenant_id')
+    if not tenant and getattr(current_user, 'is_authenticated', False):
+        tenant = getattr(current_user, 'tenant_id', None)
+    if not tenant:
+        tenant = request.headers.get('X-Tenant-ID')
+    if not tenant:
+        tenant = current_app.config.get('DEFAULT_TENANT_ID')
+
     g.tenant_id = tenant
+    session['tenant_id'] = tenant
     # Correlation / request ID
     g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
     # Attach adapter for contextual logging
@@ -20,7 +29,17 @@ def before_request():
         'tenant_id': g.tenant_id,
         'request_id': g.request_id
     })
-    g.log.info('request.start', extra={'path': request.path, 'method': request.method})
+    user_id = current_user.get_id() if getattr(current_user, 'is_authenticated', False) else None
+    session_id = session.get('_id') or session.get('session_id')
+    g.log.info(
+        "request.start path=%s method=%s tenant=%s user=%s session_id=%s session_keys=%s",
+        request.path,
+        request.method,
+        g.tenant_id,
+        user_id,
+        session_id,
+        list(session.keys())
+    )
 
 
 def after_request(response):
@@ -34,5 +53,12 @@ def after_request(response):
     response.headers['X-Tenant'] = getattr(g, 'tenant_id', 'unknown')
     response.headers['X-Request-ID'] = getattr(g, 'request_id', '')
     if hasattr(g, 'log'):
-        g.log.info('request.end', extra={'status_code': response.status_code, 'duration_ms': int(duration*1000)})
+        g.log.info(
+            "request.end path=%s status=%s duration_ms=%s tenant=%s user=%s",
+            request.path,
+            response.status_code,
+            int(duration * 1000),
+            getattr(g, 'tenant_id', None),
+            current_user.get_id() if getattr(current_user, 'is_authenticated', False) else None
+        )
     return response
