@@ -7,7 +7,7 @@ EMENTAS_FAISS_DIR = BASE_DIR / "data" / "ementas_faiss"
 
 class BaseConfig:
     JSON_AS_ASCII = False
-    SECRET_KEY = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
+    SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "insecure-development-key-change-me")
 
     # Parâmetros "legacy" do CadastroManager (Postgres)
     DB_HOST = os.getenv("DB_HOST", "localhost")
