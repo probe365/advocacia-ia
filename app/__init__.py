@@ -1,10 +1,11 @@
 # app/__init__.py
-from flask import Flask, g
+from flask import Flask, g, session, redirect, url_for
 from pathlib import Path
 import os
 
 from config import get_config
 from app.extensions import db, migrate, login_manager
+from flask_login import current_user
 
 from .health import health_bp
 from .metrics import metrics_bp
@@ -91,7 +92,7 @@ def create_app():
     # --- LOGIN USER LOADER ---
     @login_manager.user_loader
     def load_user(user_id):
-        tenant_id = getattr(g, "tenant_id", None)
+        tenant_id = session.get("tenant_id") or getattr(g, "tenant_id", None)
         if tenant_id is None:
             return None
         mgr = CadastroManager(tenant_id)
@@ -101,7 +102,9 @@ def create_app():
     # --- ROOT ROUTES ---
     @app.route("/")
     def index():
-        return {"status": "ok", "msg": "Advocacia IA SaaS ativo!"}
+        if current_user.is_authenticated:
+            return redirect(url_for("clientes.ui_mostrar_clientes"))
+        return redirect(url_for("auth.login"))
 
     @app.route("/health")
     def health():
