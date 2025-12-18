@@ -76,21 +76,35 @@ class IngestionHandler:
     def _extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
         return extract_text_from_pdf_bytes(pdf_bytes)
 
-    def _add_text_to_case_store(self, text: str, metadata: Dict[str, Any]):
-        # (Código mantido da versão anterior do pipeline.py)
-        if not text.strip(): logger.warning(f"Texto vazio para add. Metadados: {metadata}"); return
+    def _add_text_to_store(self, text: str, metadata: Dict[str, Any], store: Chroma, log_prefix: str):
+        if not text.strip():
+            logger.warning(f"[{log_prefix}] Texto vazio para add. Metadados: {metadata}")
+            return
         chunks = self.splitter.split_text(text)
-        if not chunks: logger.warning(f"Zero chunks. Texto: {text[:200]}..."); return
+        if not chunks:
+            logger.warning(f"[{log_prefix}] Zero chunks. Texto: {text[:200]}...")
+            return
         spacy_docs = list(self.nlp.pipe(chunks, batch_size=16, disable=["parser", "lemmatizer"]))
         docs_to_add = []
         for i, chunk_text in enumerate(chunks):
-            spacy_doc = spacy_docs[i]; entities = self._extract_entities_from_spacy_doc(spacy_doc)
+            spacy_doc = spacy_docs[i]
+            entities = self._extract_entities_from_spacy_doc(spacy_doc)
             flat_entities = {key: "; ".join(values) for key, values in entities.items()}
             combined_metadata = {**metadata, **flat_entities}
             for key, value in combined_metadata.items():
-                if isinstance(value, (list, dict)): combined_metadata[key] = str(value)
+                if isinstance(value, (list, dict)):
+                    combined_metadata[key] = str(value)
             docs_to_add.append(Document(page_content=chunk_text, metadata=combined_metadata))
-        if docs_to_add: self.case_store.add_documents(docs_to_add); self.case_store.persist(); logger.info(f"{len(docs_to_add)} chunks adicionados. Fonte: {metadata.get('source')}")
+        if docs_to_add:
+            store.add_documents(docs_to_add)
+            store.persist()
+            logger.info(f"[{log_prefix}] {len(docs_to_add)} chunks adicionados. Fonte: {metadata.get('source')}")
+
+    def _add_text_to_case_store(self, text: str, metadata: Dict[str, Any]):
+        self._add_text_to_store(text, metadata, self.case_store, "CASE")
+
+    def _add_text_to_kb_store(self, text: str, metadata: Dict[str, Any]):
+        self._add_text_to_store(text, metadata, self.kb_store, "KB")
 
     def _ingest_kb(self, kb_folder_path: str):
         # (Código mantido da versão anterior do pipeline.py)
@@ -120,6 +134,14 @@ class IngestionHandler:
         else: logger.warning(f"PDF '{source_name}' não continha texto extraível.")
         return text
 
+    def add_pdf_kb(self, pdf_bytes: bytes, source_name: str = "pdf_kb_upload") -> str:
+        text = extract_text_from_pdf_bytes(pdf_bytes)
+        if text:
+            self._add_text_to_kb_store(text, {"source": source_name, "type": "pdf", "filename": source_name})
+        else:
+            logger.warning(f"[KB] PDF '{source_name}' não continha texto extraível.")
+        return text
+
     def add_image(self, img_bytes: bytes, source_name: str = "image_upload") -> str: 
         text = "";
         if img_bytes.lstrip().startswith(b"%PDF"): text = self._extract_text_from_pdf_bytes(img_bytes)
@@ -129,6 +151,24 @@ class IngestionHandler:
             except Exception as e: logger.error(f"Erro ao processar imagem '{source_name}': {e}", exc_info=True)
         if text: self._add_text_to_case_store(text, {"source": source_name, "type": "image"})
         else: logger.warning(f"Nenhum texto extraído da imagem: {source_name}")
+        return text
+
+    def add_image_kb(self, img_bytes: bytes, source_name: str = "image_kb_upload") -> str:
+        text = ""
+        if img_bytes.lstrip().startswith(b"%PDF"):
+            text = self._extract_text_from_pdf_bytes(img_bytes)
+        else:
+            try:
+                text = pytesseract.image_to_string(Image.open(BytesIO(img_bytes)), lang="por+eng")
+            except pytesseract.TesseractNotFoundError:
+                logger.error("[KB] Tesseract não configurado.")
+                raise
+            except Exception as e:
+                logger.error(f"[KB] Erro ao processar imagem '{source_name}': {e}", exc_info=True)
+        if text:
+            self._add_text_to_kb_store(text, {"source": source_name, "type": "image", "filename": source_name})
+        else:
+            logger.warning(f"[KB] Nenhum texto extraído da imagem: {source_name}")
         return text
 
     def add_audio(
@@ -157,6 +197,37 @@ class IngestionHandler:
                 except Exception as e_rm: logger.warning(f"Falha ao remover tmp áudio {tmp_path}: {e_rm}")
         if text: self._add_text_to_case_store(text, {"source": source_name, "type": "audio"})
         else: logger.warning(f"Nenhum texto transcrito do áudio: {source_name}")
+        return text
+
+    def add_audio_kb(
+        self,
+        audio_bytes: bytes,
+        source_name: str = "audio_kb_upload",
+        audio_format_suffix: str = ".mp3",
+        openai_client: Optional[OpenAI] = None,
+    ) -> str:
+        logger.info(f"[KB] Processando áudio: {source_name}, sufixo: {audio_format_suffix}")
+        text = ""
+        tmp_path = None
+        if not openai_client:
+            raise ValueError("Cliente OpenAI é necessário para transcrição de áudio (KB).")
+        try:
+            with tempfile.NamedTemporaryFile(suffix=audio_format_suffix, delete=False) as tmp_f:
+                tmp_f.write(audio_bytes)
+                tmp_path = tmp_f.name
+            with open(tmp_path, "rb") as f_handle:
+                resp = openai_client.audio.transcriptions.create(model="whisper-1", file=f_handle)
+            text = resp.text if resp else ""
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception as e_rm:
+                    logger.warning(f"[KB] Falha ao remover tmp áudio {tmp_path}: {e_rm}")
+        if text:
+            self._add_text_to_kb_store(text, {"source": source_name, "type": "audio", "filename": source_name})
+        else:
+            logger.warning(f"[KB] Nenhum texto transcrito do áudio: {source_name}")
         return text
 
     def add_video(
@@ -198,6 +269,70 @@ class IngestionHandler:
                 except Exception as e_rm:
                     logger.warning(f"Falha rm tmp áudio extraído: {e_rm}")
         return {"transcript": transcript, "audio_bytes": audio_bytes_ext}
+
+    def add_video_kb(
+        self,
+        video_bytes: bytes,
+        source_name: str = "video_kb_upload",
+        video_format_suffix: str = ".mp4",
+        openai_client: Optional[OpenAI] = None,
+    ) -> Dict[str, Any]:
+        logger.info(f"[KB] Processando vídeo: {source_name}")
+        transcript = ""
+        audio_bytes_ext = None
+        tmp_vid = None
+        tmp_aud = None
+        clip = None
+        if not openai_client:
+            raise ValueError("Cliente OpenAI é necessário para transcrição de vídeo (KB).")
+        try:
+            with tempfile.NamedTemporaryFile(suffix=video_format_suffix, delete=False) as tmp_f:
+                tmp_f.write(video_bytes)
+                tmp_vid = tmp_f.name
+            clip = VideoFileClip(tmp_vid)
+            if clip.audio:
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_a_f:
+                    tmp_aud = tmp_a_f.name
+                clip.audio.write_audiofile(tmp_aud, codec="pcm_s16le", logger=None)
+                with open(tmp_aud, "rb") as f_a:
+                    audio_bytes_ext = f_a.read()
+                if audio_bytes_ext:
+                    transcript = self.add_audio_kb(
+                        audio_bytes_ext,
+                        source_name=f"{source_name}_audio_extrato",
+                        audio_format_suffix=".wav",
+                        openai_client=openai_client,
+                    )
+            else:
+                logger.warning(f"[KB] Vídeo '{source_name}' não contém trilha de áudio.")
+        finally:
+            if clip:
+                try:
+                    clip.close()
+                except:
+                    pass
+            if tmp_vid and os.path.exists(tmp_vid):
+                try:
+                    os.remove(tmp_vid)
+                except Exception as e_rm:
+                    logger.warning(f"[KB] Falha rm tmp vídeo: {e_rm}")
+            if tmp_aud and os.path.exists(tmp_aud):
+                try:
+                    os.remove(tmp_aud)
+                except Exception as e_rm:
+                    logger.warning(f"[KB] Falha rm tmp áudio extraído: {e_rm}")
+        return {"transcript": transcript, "audio_bytes": audio_bytes_ext}
+
+    def add_text_kb(self, text_bytes: bytes, source_name: str = "text_kb_upload") -> str:
+        try:
+            text = extract_text_from_txt_bytes(text_bytes)
+        except Exception:
+            text = text_bytes.decode('utf-8', errors='ignore')
+        if text:
+            self._add_text_to_kb_store(text, {"source": source_name, "type": "text", "filename": source_name})
+        else:
+            logger.warning(f"[KB] TXT '{source_name}' vazio ou não legível.")
+        return text
 
     def add_text_direct(self, text: str, source_name: str = "text_input", metadata_override: Optional[Dict] = None) -> List[Tuple[str, str]]:
         # Renomeado de add_text para add_text_direct para evitar conflito com o add_text da classe Pipeline original
