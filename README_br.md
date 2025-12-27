@@ -142,7 +142,19 @@ OPENAI_API_KEY=sua_chave
 UPLOAD_FOLDER=cases
 
 5) Inicie o servidor
-flask run
+No Windows (PowerShell), recomendamos apontar o Flask para o `manage.py` (isso garante que o `.env` seja carregado):
+
+```powershell
+$env:FLASK_APP="manage.py"
+flask run -p 5001
+```
+
+No Linux/Mac:
+
+```bash
+export FLASK_APP=manage.py
+flask run -p 5001
+```
 
 🏛️ Arquitetura do Projeto
 1️⃣ Flask Modular Blueprint
@@ -211,7 +223,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=/root/advocacia-ia-app
-ExecStart=/root/advocacia-ia-app/venv/bin/gunicorn -w 4 -b 0.0.0.0:8000 run:app
+ExecStart=/root/advocacia-ia-app/venv/bin/gunicorn -w 4 -b 0.0.0.0:8000 wsgi:application
 Restart=always
 
 [Install]

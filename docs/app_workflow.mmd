@@ -1,0 +1,17 @@
+```mermaid
+flowchart TD
+    A["User Browser"] --> B["think-advocacia.com (HTTPS/Gunicorn)"]
+    B --> C["Flask App Factory"]
+    C --> D["Middleware<br/>tenant discovery + logging"]
+    D -->|anonymous| E["Auth Blueprint /login"]
+    D -->|authenticated| F["Feature Blueprints<br/>(clientes, processos, documentos, etc.)"]
+    F --> G["Service Layer<br/>(CadastroService, etc.)"]
+    G --> H["CadastroManager<br/>Postgres (per-tenant queries)"]
+    F --> I["AI Pipeline<br/>(case orchestration per tenant)"]
+    I --> J["Case Assets<br/>(cases/<tenant>/<case>, Chroma stores, OpenAI)"]
+    H --> K["Templates + HTMX Partials"]
+    J --> K
+    K --> A
+    C --> L["Ancillary Blueprints<br/>(health, metrics, kb)"]
+    L --> K
+```

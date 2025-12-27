@@ -9,6 +9,10 @@ import re
 import openai
 from typing import Optional
 
+# Importe o novo serviço no topo do processos.py
+from app.services.petition_service import PetitionService
+from app.services.export_service import ExportService
+
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
     flash, current_app, send_file, abort, g, session, jsonify, Response
@@ -466,11 +470,7 @@ def ui_resumo(id_processo):
                   hx-vals='js:{{focus: document.getElementById("focus-resumo").value}}'
                   hx-target='#download-area'
                   hx-swap='outerHTML'>Exportar TXT</button>
-                <button class='btn btn-sm btn-outline-secondary'
-                  hx-post='/processos/ui/{id_processo}/export/resumo/pdf'
-                  hx-vals='js:{{focus: document.getElementById("focus-resumo").value}}'
-                  hx-target='#download-area-pdf'
-                  hx-swap='outerHTML'>Exportar PDF</button>
+                <button hx-post="/processos/ui/{{id_processo}}/export/resumo/pdf" ...>Exportar PDF</button>
               </div>
               <div id='download-area' class='mt-2'></div>
               <div id='download-area-pdf' class='mt-1'></div>
@@ -499,65 +499,66 @@ def ui_export_resumo(id_processo):
     except Exception as e:
         return f"<div class='alert alert-danger mt-2'>Erro ao exportar: {e}</div>", 500
 
-@processos_bp.route('/ui/<id_processo>/export/resumo/pdf', methods=['POST'])
-def ui_export_resumo_pdf(id_processo):
-    try:
-        pipeline = _build_pipeline(
-            case_id=id_processo,
-            tenant_id=getattr(g, 'tenant_id', None),
-        )
+@processos_bp.route('/ui/<id_processo>/export/<tipo>/<formato>', methods=['POST', 'GET'])
+@login_required
+def ui_export_universal(id_processo, tipo, formato):
+    """
+    A GRANDE LIMPEZA: Uma única rota para PDF (Resumo/FIRAC) e DOCX (Petição).
+    Resolve a desconexão e centraliza a exportação.
+    """
+    tenant_id = getattr(g, 'tenant_id', None)
+    pipeline = _build_pipeline(id_processo, tenant_id)
+    filename = f"{tipo}_{_compute_case_code(id_processo)}.{formato}"
+    path = pipeline.case_dir / 'exports' / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-        focus = (request.form.get('focus') or '').strip()
-        resumo = pipeline.summarize(query_for_relevance=focus or 'Resumo geral do caso')
-        code = _compute_case_code(id_processo)
-        filename = f"resumo_{code}.pdf"
-        export_dir = pipeline.case_dir / 'exports'
-        export_dir.mkdir(parents=True, exist_ok=True)
-        pdf_path = export_dir / filename
-        generated = False
-        try:
-            from fpdf import FPDF
-            pdf = FPDF()
-            pdf.set_margins(15, 15, 15)
-            pdf.set_auto_page_break(auto=True, margin=15)
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 14)
-            pdf.cell(0, 10, f"Resumo do Caso - {code}", ln=1)
-            pdf.set_font("Arial", size=11)
-            # Tratar parágrafos preservando quebras em branco
-            paragraphs = [p.strip() for p in resumo.split('\n')]
-            for para in paragraphs:
-                if not para:
-                    pdf.ln(4)
-                    continue
-                # multi_cell faz wrap automático; substitui tabs múltiplos espaços
-                pdf.multi_cell(0, 6, para.replace('\t', '    '))
-                pdf.ln(1)
-            pdf.output(str(pdf_path))
-            if pdf_path.exists() and pdf_path.stat().st_size > 100:
-                generated = True
-            else:
-                logger.warning('PDF resumo não gerado ou vazio', extra={'case_id': id_processo, 'code': code, 'path': str(pdf_path)})
-        except ImportError:
-            logger.info('fpdf não instalada - fallback para TXT')
-        except Exception:
-            logger.exception('Erro gerando PDF resumo')
-        if generated and pdf_path.exists():
-            try:
-                size = pdf_path.stat().st_size
-            except Exception:
-                size = -1
-            if size > 0:
-                return f"<a class='btn btn-sm btn-success' href='/processos/ui/{id_processo}/download/exports/{filename}' target='_blank'>Baixar {filename} ({size//1024} KB)</a>"
-            else:
-                logger.error('Arquivo PDF resumo ausente ou vazio após geração', extra={'case_id': id_processo, 'code': code, 'path': str(pdf_path), 'size': size})
-        b64 = base64.b64encode(resumo.encode('utf-8')).decode('utf-8')
-        debug = ''
-        if pdf_path and not pdf_path.exists():
-            debug = f" (debug: arquivo não encontrado em {pdf_path})"
-        return f"<a download='{filename.replace('.pdf','.txt')}' href='data:text/plain;base64,{b64}' class='btn btn-sm btn-warning'>Baixar como TXT (fallback)</a><small class='text-muted ms-2'>PDF não gerado{debug}</small>"
-    except Exception as e:
-        return f"<div class='alert alert-danger mt-2'>Erro ao exportar PDF: {e}</div>", 500
+    # 1. Coleta o Conteúdo Baseado no Tipo
+    if tipo == 'resumo':
+        conteudo = pipeline.summarize()
+        titulo = "Resumo Estruturado do Caso"
+    elif tipo == 'firac':
+        result = pipeline.generate_firac()
+        conteudo = result.get('raw', 'Análise não disponível.')
+        titulo = "Análise Jurídica FIRAC"
+        
+    elif tipo == 'peticao':
+        # 1. Prepara dados básicos
+        ctx = PetitionService.preparar_contexto_peticao(id_processo, tenant_id)
+
+        # CAPTURA ÚNICA: Pegamos o valor do select da UI
+        # Se na tela estiver "Autor - Iniciando a ação", o valor deve ser mapeado para REPLICA se desejado
+        escolha_usuario = request.form.get('papel_cliente', 'INICIAL').upper()
+        
+        # Injetamos no contexto para o petition_module.py ler
+        ctx['tipo_documento'] = escolha_usuario
+            
+        # 2. CAPTURA O TEXTO DA IA (Pilar 2)
+        firac_result = pipeline.generate_firac()
+        texto_da_ia = pipeline.generate_peticao_rascunho(ctx, firac_result)
+        
+        # 3. GARANTE A INJEÇÃO PARA O WORD
+        ctx['conteudo_peticao'] = texto_da_ia
+
+        if formato == 'docx':
+            # Agora o 'ctx' contém a petição completa para o ExportService ler
+            if ExportService.to_docx(ctx, filename, id_processo, tenant_id):
+                return f"<a href='/processos/ui/{id_processo}/download/exports/{filename}' class='btn btn-success btn-sm' target='_blank'>Baixar DOCX</a>"
+
+        # 4. Agora sim, exportamos com o conteúdo completo
+        if formato == 'docx':
+            if ExportService.to_docx(ctx, filename, id_processo, tenant_id):
+                return f"<a href='/processos/ui/{id_processo}/download/exports/{filename}' class='btn btn-success btn-sm' target='_blank'>Baixar DOCX</a>"
+        
+        # Se um dia quiser PDF, o 'conteudo' será o texto da IA
+        conteudo = texto_da_ia
+        titulo = "Rascunho de Petição"
+        
+    # 2. Executa a Exportação para PDF
+    if formato == 'pdf':
+        if ExportService.generate_pdf(conteudo, titulo, path):
+            return f"<a href='/processos/ui/{id_processo}/download/exports/{filename}' class='btn btn-success btn-sm' target='_blank'>Baixar PDF</a>"
+
+    return "<div class='alert alert-danger small'>Erro ao gerar documento.</div>", 500
 
 @processos_bp.route('/ui/<id_processo>/download/exports/<path:filename>')
 def ui_download_export(id_processo, filename):
@@ -579,7 +580,15 @@ def ui_download_export(id_processo, filename):
         if not target.exists():
             logger.warning('arquivo export não encontrado', extra={'case_id': id_processo, 'file': str(target)})
             return f"<div class='alert alert-warning mt-2'>Arquivo não encontrado: {filename}</div>", 404
-        mime = 'application/pdf' if filename.lower().endswith('.pdf') else 'text/plain'
+        filename_lower = filename.lower()
+        if filename_lower.endswith('.pdf'):
+            mime = 'application/pdf'
+        elif filename_lower.endswith('.docx'):
+            mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        elif filename_lower.endswith('.txt'):
+            mime = 'text/plain'
+        else:
+            mime = 'application/octet-stream'
         try:
             return send_file(str(target), mimetype=mime, as_attachment=True, download_name=filename)
         except TypeError:
@@ -618,79 +627,6 @@ def ui_analise_firac(id_processo):
     except Exception as e:
         return f"<div class='alert alert-danger'>Erro FIRAC: {e}</div>", 500
 
-@processos_bp.route('/ui/<id_processo>/analise/firac/export/pdf', methods=['POST'])
-def ui_export_firac_pdf(id_processo):
-    try:
-        pipeline = _build_pipeline(
-            case_id=id_processo,
-            tenant_id=getattr(g, 'tenant_id', None),
-        )
-
-        focus = (request.form.get('focus') or '').strip()
-        result = pipeline.generate_firac(focus=focus)
-        data = result.get('data')
-        raw = result.get('raw')
-        from datetime import datetime
-        code = _compute_case_code(id_processo)
-        filename = f"firac_{code}.pdf"
-        export_dir = pipeline.case_dir / 'exports'
-        export_dir.mkdir(parents=True, exist_ok=True)
-        pdf_path = export_dir / filename
-        generated = False
-        try:
-            from fpdf import FPDF
-            pdf = FPDF()
-            pdf.set_auto_page_break(auto=True, margin=12)
-            pdf.add_page()
-            pdf.set_font("Arial", "B", 14)
-            pdf.cell(0, 10, f"Análise FIRAC - {code}", ln=1)
-            pdf.set_font("Arial", size=9)
-            pdf.cell(0, 6, f"Gerado: {datetime.utcnow().isoformat()}Z", ln=1)
-            pdf.ln(2)
-            def write_section(title, content_lines):
-                pdf.set_font("Arial", "B", 11)
-                pdf.cell(0, 7, title, ln=1)
-                pdf.set_font("Arial", size=10)
-                if isinstance(content_lines, list):
-                    for i, l in enumerate(content_lines, 1):
-                        pdf.multi_cell(0, 5, f"{i}. {l}")
-                else:
-                    for para in str(content_lines).split('\n'):
-                        pdf.multi_cell(0, 5, para)
-                pdf.ln(2)
-            if data:
-                write_section('Fatos', data.get('facts') or [])
-                write_section('Questão', data.get('issue',''))
-                write_section('Regras', data.get('rules') or [])
-                write_section('Aplicação', data.get('application',''))
-                write_section('Conclusão', data.get('conclusion',''))
-            else:
-                write_section('FIRAC (Texto)', raw)
-            pdf.output(str(pdf_path))
-            if pdf_path.exists() and pdf_path.stat().st_size > 100:
-                generated = True
-            else:
-                logger.warning('PDF FIRAC não gerado ou vazio', extra={'case_id': id_processo, 'code': code, 'path': str(pdf_path)})
-        except ImportError:
-            logger.info('fpdf não instalada - fallback para TXT FIRAC')
-        except Exception:
-            logger.exception('Erro gerando PDF FIRAC')
-        if generated and pdf_path.exists():
-            try:
-                size = pdf_path.stat().st_size
-            except Exception:
-                size = -1
-            if size > 0:
-                return f"<a class='btn btn-sm btn-success' href='/processos/ui/{id_processo}/download/exports/{filename}' target='_blank'>Baixar {filename} ({size//1024} KB)</a>"
-            else:
-                logger.error('Arquivo PDF FIRAC ausente ou vazio após geração', extra={'case_id': id_processo, 'code': code, 'path': str(pdf_path), 'size': size})
-        b64 = base64.b64encode((raw or 'FIRAC não disponível').encode('utf-8')).decode('utf-8')
-        debug = ''
-        if pdf_path and not pdf_path.exists():
-            debug = f" (debug: arquivo não encontrado em {pdf_path})"
-        return f"<a download='{filename.replace('.pdf','.txt')}' href='data:text/plain;base64,{b64}' class='btn btn-sm btn-warning'>Baixar TXT (fallback)</a><small class='text-muted ms-2'>PDF não gerado{debug}</small>"
-    except Exception as e:
-        return f"<div class='alert alert-danger'>Erro exportar FIRAC: {e}</div>", 500
 
 @processos_bp.route('/ui/<id_processo>/peticao/form', methods=['GET'])
 def ui_peticao_form(id_processo):
@@ -882,6 +818,14 @@ def ui_peticao_gerar(id_processo):
         except Exception as gen_exc:
             logger.warning("[PETITION DEBUG] generate_peticao_rascunho falhou, usando fallback: %s", gen_exc, exc_info=True)
             peticao_txt = _fallback_peticao_text(dados_ui)
+
+        # Cacheia o último rascunho gerado para permitir exportar sem re-chamar o LLM
+        try:
+            cache_dir = pipeline.case_dir / 'cache'
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            (cache_dir / 'peticao_last.txt').write_text(peticao_txt or '', encoding='utf-8', errors='replace')
+        except Exception:
+            logger.warning("Falha ao cachear peticao_last.txt", exc_info=True)
         # Sanitização de mensagens de ausência de dados para evitar texto de desculpas
         for marker in ["Desculpe", "Por favor, forneça", "não forneceu a conclusão"]:
             if marker in peticao_txt:
@@ -972,79 +916,48 @@ def ui_peticao_export_pdf(id_processo):
         return f"<div class='alert alert-danger'>Erro exportar PDF petição: {e}</div>", 500
 
 @processos_bp.route('/ui/<id_processo>/peticao/export/docx', methods=['GET'])
+@login_required
 def ui_peticao_export_docx(id_processo):
+    """
+    Rota magra: Apenas solicita ao serviço a geração do arquivo.
+    """
     try:
-        try:
-            from docx import Document
-        except ImportError:
-            return "<div class='text-danger'>Dependência 'python-docx' não instalada. Instale para exportar DOCX: pip install python-docx</div>"
+        tenant_id = getattr(g, 'tenant_id', None)
+
         pipeline = _build_pipeline(
             case_id=id_processo,
-            tenant_id=getattr(g, 'tenant_id', None),
+            tenant_id=tenant_id,
         )
 
-        proc = service.get_processo(id_processo) or {}
-        id_cliente_raw = proc.get('id_cliente')
-        id_cliente = str(id_cliente_raw) if id_cliente_raw is not None else None
-        cliente = service.get_cliente(id_cliente) if id_cliente else None
-        advogado = service.get_advogado(proc.get('advogado_oab')) if proc.get('advogado_oab') else None
-        firac = pipeline.generate_firac()
-        
-        data_firac = firac.get('data') or {}
-        
-        # Use improved parser if data is empty but raw exists
-        if not data_firac and firac.get('raw'):
-            logger.info("[DOCX EXPORT] Parsing raw FIRAC text")
-            data_firac = _parse_firac_raw_text(firac.get('raw', ''))
-        
-        # Legacy fallback for conclusion only (mantido para compatibilidade)
-        if (not data_firac) or (not data_firac.get('conclusion')):
-            raw_firac = firac.get('raw', '')
-            m2 = re.search(r'Conclus[aã]o\s*[:\-]\s*(.+?)(?:\n\s*\n|$)', raw_firac, re.IGNORECASE | re.DOTALL)
-            if m2:
-                concl = m2.group(1).strip()
-                if not data_firac:
-                    data_firac = {'facts': '', 'issue': '', 'rules': '', 'application': '', 'conclusion': concl}
-                else:
-                    data_firac['conclusion'] = data_firac.get('conclusion') or concl
-        adv_name = (advogado or {}).get('nome') or ''
-        adv_oab_raw = (advogado or {}).get('oab') or ''
-        oab_uf='XX'; oab_num=adv_oab_raw
-        m=re.match(r'([A-Za-z]{2})\s*-?\s*(.*)', adv_oab_raw)
-        if m: oab_uf=m.group(1).upper(); oab_num=m.group(2).strip()
-        dados_ui = {'juizo': {}, 'autor': {'nome_completo_ou_razao_social': (cliente or {}).get('nome_completo','AUTOR')}, 'reu': {'nome': 'RÉU'}, 'advogado': {'nome': adv_name, 'oab_uf': oab_uf, 'oab_numero': oab_num}, 'outros': {}}
-        
-        # Convert FIRAC lists to strings for petition generation (DOCX export)
-        facts_raw = data_firac.get('facts', [])
-        rules_raw = data_firac.get('rules', [])
-        facts_str = '\n'.join(facts_raw) if isinstance(facts_raw, list) else str(facts_raw)
-        rules_str = '\n'.join(rules_raw) if isinstance(rules_raw, list) else str(rules_raw)
-        
-        peticao_txt = pipeline.generate_peticao_rascunho(dados_ui, {
-            'facts': facts_str,
-            'issue': data_firac.get('issue', ''),
-            'rules': rules_str,
-            'application': data_firac.get('application', ''),
-            'conclusion': data_firac.get('conclusion', '')
-        })
-        doc = Document()
-        doc.add_heading(f'Petição Inicial - {id_processo}', level=1)
-        for para in peticao_txt.split('\n'):
-            if para.strip():
-                doc.add_paragraph(para)
-            else:
-                doc.add_paragraph('')
-        export_dir = pipeline.case_dir / 'exports'
-        export_dir.mkdir(parents=True, exist_ok=True)
-        filename = f'peticao_{_compute_case_code(id_processo)}.docx'
-        doc_path = export_dir / filename
-        doc.save(str(doc_path))
-        if doc_path.exists():
-            return f"<a class='btn btn-sm btn-success' href='/processos/ui/{id_processo}/download/exports/{filename}' target='_blank'>Baixar {filename}</a>"
-        return "<div class='text-danger'>Falha ao gerar DOCX.</div>"
-    except Exception as e:
-        return f"<div class='alert alert-danger'>Erro exportar DOCX petição: {e}</div>", 500
+        # Preferência: usar o último rascunho gerado (igual ao exibido na tela)
+        cache_path = pipeline.case_dir / 'cache' / 'peticao_last.txt'
+        texto_cache = ''
+        if cache_path.exists():
+            try:
+                texto_cache = cache_path.read_text(encoding='utf-8', errors='replace').strip()
+            except Exception:
+                logger.warning("Falha ao ler cache de petição", exc_info=True)
+                texto_cache = ''
 
+        if texto_cache:
+            dados_peticao = {'conteudo_peticao': texto_cache}
+        else:
+            # Fallback: regenerar (pode divergir do que foi exibido se parâmetros mudarem)
+            ctx = PetitionService.preparar_contexto_peticao(id_processo, tenant_id)
+            firac_result = pipeline.generate_firac()
+            texto_da_ia = pipeline.generate_peticao_rascunho(ctx, firac_result)
+            ctx['conteudo_peticao'] = texto_da_ia
+            dados_peticao = ctx
+
+        filename = f"peticao_{_compute_case_code(id_processo)}.docx"
+        sucesso = ExportService.to_docx(dados_peticao, filename, id_processo, tenant_id)
+        if sucesso:
+            return f"<a class='btn btn-sm btn-success' href='/processos/ui/{id_processo}/download/exports/{filename}' target='_blank'>Baixar DOCX</a>"
+        return "<div class='text-danger'>Erro ao gerar documento.</div>", 500
+    except Exception as e:
+        logger.exception("Erro na exportação DOCX")
+        return f"Erro: {e}", 500
+    
 @processos_bp.route('/ui/<id_processo>/analise/riscos', methods=['POST'])
 def ui_analise_riscos(id_processo):
     try:

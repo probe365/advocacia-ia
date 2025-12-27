@@ -78,6 +78,20 @@ sudo journalctl -u advocacia-ia.service --no-pager -n 50
 Check for migrations:
 flask db upgrade
 
+-----------------------------------
+ssh root@167.71.93.211
+ssh proberto@167.71.93.211
+P@ulo365
+Adv0c@cia2025!IA
+-----------------------------------
+cp C:\advocacia-ia-app\venv\Lib\site-packages\alembic\templates\generic\script.py.mako
+
+cp venv/lib/python3.10/site-packages/alembic/templates/generic/script.py.mako alembic/script.py.mako
+
+ls -l alembic/script.py.mako
+-----------------------------------
+
+
 Edit service:
 sudo nano /etc/systemd/system/advocacia-ia.service
 
@@ -85,7 +99,7 @@ Restart your service:
 sudo systemctl restart advocacia-ia.service
 
 Alembic directory:
-cd /var/www/advocacia_ia
+sudo systemctl restart advocacia-ia.service
 
 Activate the virtual environment:
 source /var/www/advocacia_ia/venv/bin/activate
@@ -129,3 +143,20 @@ DB_NAME: advocacia_ia_prod
 DB_USER: postgres
 DB_PASSWORD: probe365
 This ensures consistency—your app and Alembic will always use these values unless you override them with environment variables.
+-------------------
+5-12-25
+(.venv) PS C:\advocacia-ia-app> alembic revision -m "create escritorio and documentos tables"
+Generating C:\advocacia-ia-app\alembic\versions\e4a4e6dd66ae_create_escritorio_and_documentos_tables.py ...  done
+(.venv) PS C:\advocacia-ia-app>
+
+--------------
+git status
+git add alembic/versions/e4a4e6dd66ae_create_escritorio_and_documentos_tables.py
+git commit -m "Add escritorio and documentos tables migration"
+git push origin main
+------------------
+
+git clone https://github.com/probe365/advocacia-ia.git
+-----------------------
+sudo systemctl status advocacia-ia.service
+

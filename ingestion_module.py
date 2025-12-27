@@ -9,8 +9,8 @@ import pytesseract
 import pdfplumber
 import spacy
 from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from moviepy.editor import VideoFileClip
 import os # Para remoção de arquivos temporários em add_video
 import tempfile
@@ -35,6 +35,9 @@ from utils_arq import extract_text_from_pdf_bytes, extract_text_from_txt_bytes
 
 # Choose the correct import based on your folder structure and remove the others.
 from datajud import fetch_datajud_jurisprudencia, fetch_datajud_por_processo, fetch_datajud_bool_query
+
+logger = logging.getLogger(__name__)
+
 _tesseract_cmd = os.getenv("TESSERACT_CMD")
 if not _tesseract_cmd:
     if platform.system().lower().startswith("win"):
@@ -42,12 +45,20 @@ if not _tesseract_cmd:
     else:
         _tesseract_cmd = "/usr/bin/tesseract"
 pytesseract.pytesseract.tesseract_cmd = _tesseract_cmd
-if not Path(_tesseract_cmd).exists():
-    logging.getLogger(__name__).warning(
-        "Tesseract binary not found at %s; OCR uploads may fail", _tesseract_cmd
-    )
 
-logger = logging.getLogger(__name__)
+_TESSERACT_EXISTS = Path(_tesseract_cmd).exists()
+_TESSERACT_WARNED = False
+
+
+def _warn_missing_tesseract_once() -> None:
+    global _TESSERACT_WARNED
+    if _TESSERACT_EXISTS or _TESSERACT_WARNED:
+        return
+    _TESSERACT_WARNED = True
+    logger.warning(
+        "Tesseract binary not found at %s; OCR may fail. Set TESSERACT_CMD to silence this.",
+        _tesseract_cmd,
+    )
 
 class IngestionHandler:
     def __init__(self, nlp_processor: spacy.language.Language, 
@@ -146,7 +157,9 @@ class IngestionHandler:
         text = "";
         if img_bytes.lstrip().startswith(b"%PDF"): text = self._extract_text_from_pdf_bytes(img_bytes)
         else:
-            try: text = pytesseract.image_to_string(Image.open(BytesIO(img_bytes)), lang="por+eng")
+            try:
+                _warn_missing_tesseract_once()
+                text = pytesseract.image_to_string(Image.open(BytesIO(img_bytes)), lang="por+eng")
             except pytesseract.TesseractNotFoundError: logger.error("Tesseract não configurado."); raise
             except Exception as e: logger.error(f"Erro ao processar imagem '{source_name}': {e}", exc_info=True)
         if text: self._add_text_to_case_store(text, {"source": source_name, "type": "image"})
@@ -159,6 +172,7 @@ class IngestionHandler:
             text = self._extract_text_from_pdf_bytes(img_bytes)
         else:
             try:
+                _warn_missing_tesseract_once()
                 text = pytesseract.image_to_string(Image.open(BytesIO(img_bytes)), lang="por+eng")
             except pytesseract.TesseractNotFoundError:
                 logger.error("[KB] Tesseract não configurado.")

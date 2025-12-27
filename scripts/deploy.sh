@@ -13,6 +13,45 @@ if [ -f .env ]; then
   set +a
 fi
 
+# Prod servers keep secrets in .env.systemd, so load it when available
+if [ -f .env.systemd ]; thensudo -u postgres psql -d advocacia_ia_prod <<'SQL'
+-- create the sequence if it isn't there yet
+CREATE SEQUENCE IF NOT EXISTS documentos_id_seq;
+
+CREATE TABLE IF NOT EXISTS public.documentos (
+    id integer NOT NULL DEFAULT nextval('documentos_id_seq'::regclass),
+    tenant_id text NOT NULL,
+    id_cliente varchar(50) NOT NULL,
+    id_processo varchar(50) NOT NULL,
+    tipo varchar(20) NOT NULL,
+    titulo varchar(255) NOT NULL,
+    descricao text,
+    arquivo_nome varchar(255) NOT NULL,
+    mime_type varchar(100),
+    tamanho_bytes bigint,
+    storage_backend varchar(50) NOT NULL DEFAULT 'local',
+    storage_path varchar(500) NOT NULL,
+    checksum_sha256 varchar(64),
+    criado_por_id integer NOT NULL,
+    created_at timestamp without time zone NOT NULL DEFAULT now(),
+    updated_at timestamp without time zone NOT NULL DEFAULT now(),
+    PRIMARY KEY (id),
+    CONSTRAINT fk_documentos_clientes FOREIGN KEY (id_cliente) REFERENCES public.clientes (id_cliente),
+    CONSTRAINT fk_documentos_processos FOREIGN KEY (id_processo) REFERENCES public.processos (id_processo),
+    CONSTRAINT fk_documentos_usuarios FOREIGN KEY (criado_por_id) REFERENCES public.usuarios (id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_documentos_checksum ON public.documentos (checksum_sha256);
+CREATE INDEX IF NOT EXISTS ix_documentos_id_cliente ON public.documentos (id_cliente);
+CREATE INDEX IF NOT EXISTS ix_documentos_id_processo ON public.documentos (id_processo);
+CREATE INDEX IF NOT EXISTS ix_documentos_tenant_id ON public.documentos (tenant_id);
+SQL
+  set -a
+  # shellcheck disable=SC1091
+  source .env.systemd
+  set +a
+fi
+
 VENV_DIR="${PROJECT_ROOT}/.venv"
 PYTHON_BIN="python3"
 

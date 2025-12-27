@@ -1,15 +1,16 @@
-# petition_module.py
-from email import utils
+# petition_module.py - Versão Gemini 3 Flash
 import logging
 import json
 import re
+import os # Importante para ler o .env
 from typing import Dict, Any, Optional, Iterable
-from datetime import datetime # Movida para cá
+from datetime import datetime
 
-from langchain_openai import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+# SUBSTITUÍDO: OpenAI por Google GenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate
 
+# Mantenha suas importações de helpers
 from utils.text_helpers import extract_text, format_date_pt, clean_text, normalize_name, format_cpf, format_cnpj, validate_cpf, validate_cnpj, detect_document_type
 
 logger = logging.getLogger(__name__)
@@ -118,28 +119,49 @@ OAB/{uf_oab} nº {numero_oab}
 
     DEFAULT_DATA_PETICAO = format_date_pt()  # Data padrão formatada em português
 
-    def __init__(self, llm: ChatOpenAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI): # Mudado para aceitar Gemini
         self.llm = llm
         self._initialize_peticao_prompts_and_chains()
+
+    def _extract_text_from_llm_response(self, response: Any) -> str:
+        """Normaliza respostas do LangChain em texto simples."""
+        content = getattr(response, "content", "")
+        if isinstance(content, str):
+            return content.strip()
+
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    text = item.get("text")
+                    if text:
+                        parts.append(str(text))
+                else:
+                    parts.append(str(item))
+            return "\n".join(parts).strip()
+
+        return str(content).strip()
+
+    def _invoke_prompt(self, prompt: PromptTemplate, input_data: Dict[str, Any]) -> str:
+        rendered = prompt.format(**input_data)
+        resp = self.llm.invoke(rendered)
+        return self._extract_text_from_llm_response(resp)
 
     def _initialize_peticao_prompts_and_chains(self):
         # (Código dos Prompts NOME_ACAO_PETICAO, ARTIGOS_CHAVE_PETICAO, NARRATIVA_FATOS_PETICAO,
         #  FUNDAMENTACAO_GERAL_PETICAO, LISTA_PEDIDOS_COMPLETA_PETICAO e suas respectivas LLMChains,
         #  como na versão anterior do pipeline.py _initialize_peticao_prompts_and_chains)
         self.NOME_ACAO_PETICAO_PROMPT = PromptTemplate(input_variables=["firac_issue", "firac_conclusion"], template="Questão jurídica: \"{firac_issue}\"\nConclusão: \"{firac_conclusion}\"\n\nGere APENAS o nome formal da ação judicial em PORTUGUÊS, sem explicações ou introduções.\nExemplos:\n- \"AÇÃO DE INDENIZAÇÃO POR DANOS MORAIS E MATERIAIS\"\n- \"AÇÃO DECLARATÓRIA DE NULIDADE DE CONTRATO CUMULADA COM REPETIÇÃO DE INDÉBITO\"\n\nResposta (SOMENTE o nome da ação):")
-        self.nome_acao_peticao_chain = LLMChain(llm=self.llm, prompt=self.NOME_ACAO_PETICAO_PROMPT, output_key="nome_completo_acao")
 
         self.ARTIGOS_CHAVE_PETICAO_PROMPT = PromptTemplate(input_variables=["firac_rules"], template="Com base nas seguintes regras e normas identificadas para o caso:\n{firac_rules}\n\nListe APENAS os artigos de lei, de forma CONCISA e DIRETA, sem explicações ou introduções. Use o formato: \"Art. X do [Lei], Art. Y do [Lei]\".\nExemplos corretos:\n- \"Art. 186 e 927 do Código Civil\"\n- \"Art. 5º, X da Constituição Federal e Art. 14 do CDC\"\n\nNÃO inclua:\n- Frases introdutórias\n- Explicações sobre o que os artigos dizem\n- Numeração ou marcadores\n\nResposta (SOMENTE os artigos):")
-        self.artigos_chave_peticao_chain = LLMChain(llm=self.llm, prompt=self.ARTIGOS_CHAVE_PETICAO_PROMPT, output_key="artigos_fundamentacao_chave")
         
         self.NARRATIVA_FATOS_PETICAO_PROMPT = PromptTemplate(input_variables=["firac_facts"], template="Os seguintes são os fatos relevantes de um caso jurídico, extraídos de uma análise FIRAC:\n{firac_facts}\nRe-escreva esses fatos como uma narrativa coesa, clara, em ordem cronológica (ou lógica mais apropriada), e detalhada o suficiente para a seção \"II - DOS FATOS\" de uma petição inicial. Use linguagem formal jurídica, seja objetivo e atenha-se aos fatos apresentados. A narrativa deve ser em PORTUGUÊS.\nNarrativa dos Fatos para Petição:")
-        self.narrativa_fatos_peticao_chain = LLMChain(llm=self.llm, prompt=self.NARRATIVA_FATOS_PETICAO_PROMPT, output_key="narrativa_dos_fatos")
         
         self.FUNDAMENTACAO_GERAL_PETICAO_PROMPT = PromptTemplate(input_variables=["firac_issue", "firac_rules", "firac_application"], template="Para uma petição inicial, redija a seção \"III - DO DIREITO\".\nA questão jurídica é: {firac_issue}\nAs regras aplicáveis são: {firac_rules}\nA aplicação dessas regras aos fatos resultou em: {firac_application}\nEstruture a fundamentação jurídica de forma lógica e persuasiva, citando as regras e explicando como elas se aplicam aos fatos para sustentar o direito do autor. Se houver múltiplos fundamentos, você PODE dividi-los em subseções com títulos apropriados (ex: III.1 Do Dano Material, III.2 Do Dano Moral). Responda em PORTUGUÊS.\nFundamentação Jurídica Completa (para a seção \"DO DIREITO\"):" )
-        self.fundamentacao_geral_peticao_chain = LLMChain(llm=self.llm, prompt=self.FUNDAMENTACAO_GERAL_PETICAO_PROMPT, output_key="fundamentacao_juridica_geral")
         
         self.LISTA_PEDIDOS_COMPLETA_PETICAO_PROMPT = PromptTemplate(input_variables=["firac_conclusion", "firac_issue"],template="""A conclusão de uma análise FIRAC para um caso relacionado à questão jurídica "{firac_issue}" é:\n{firac_conclusion}\nCom base nesta conclusão, formule TODOS os pedidos (principais e acessórios) que devem constar no item "V - DOS PEDIDOS" de uma petição inicial.\nFormate cada pedido em uma nova linha, começando com uma alínea (ex: "a) ...;", "b) ...;", etc.).\nInclua pedidos comuns como:\n1. A citação do Réu.\n2. O pedido principal decorrente da conclusão do caso (seja específico).\n3. Outros pedidos acessórios ou secundários relevantes para o caso.\n4. A condenação do Réu ao pagamento de custas processuais e honorários advocatícios.\n5. O protesto pela produção de todas as provas admitidas em direito.\nSe aplicável, inclua um pedido de gratuidade de justiça ou tutela de urgência no início da lista de pedidos, se a conclusão do caso sugerir. Responda em PORTUGUÊS.\n\nLISTA COMPLETA DE PEDIDOS FORMATADOS PARA PETIÇÃO (um por linha, com alíneas):""")
-        self.lista_pedidos_completa_peticao_chain = LLMChain(llm=self.llm, prompt=self.LISTA_PEDIDOS_COMPLETA_PETICAO_PROMPT, output_key="lista_completa_dos_pedidos_formatada")
 
 
     def _clean_llm_response(self, text: str, response_type: str = "general") -> str:
@@ -195,26 +217,16 @@ OAB/{uf_oab} nº {numero_oab}
         
         return cleaned.strip()
 
-    def _validar_inputs_para_chain(self, chain: LLMChain, input_data: Dict[str, Any], chain_nome: str) -> bool:
-        """
-        Valida se todos os input_variables esperados pela chain estão presentes e não vazios.
-
-        Args:
-            chain (LLMChain): A chain que será validada.
-            input_data (Dict[str, Any]): O dicionário de inputs que será passado para a chain.
-            chain_nome (str): Nome da chain para fins de log.
-
-        Returns:
-            bool: True se todos os inputs estão válidos, False se houver faltantes ou vazios.
-        """
-        esperados = chain.prompt.input_variables
+    def _validar_inputs_para_prompt(self, prompt: PromptTemplate, input_data: Dict[str, Any], prompt_nome: str) -> bool:
+        """Valida se todos os input_variables esperados pelo prompt estão presentes e não vazios."""
+        esperados = prompt.input_variables
         faltantes = [var for var in esperados if var not in input_data]
         vazios = [var for var in esperados if not input_data.get(var)]
 
         if faltantes:
-            logger.error(f"[VALIDADOR] Chain '{chain_nome}' está com variáveis faltantes: {faltantes}")
+            logger.error(f"[VALIDADOR] Prompt '{prompt_nome}' está com variáveis faltantes: {faltantes}")
         if vazios:
-            logger.warning(f"[VALIDADOR] Chain '{chain_nome}' está com variáveis vazias: {vazios}")
+            logger.warning(f"[VALIDADOR] Prompt '{prompt_nome}' está com variáveis vazias: {vazios}")
 
         return not faltantes and not vazios
 
@@ -285,10 +297,8 @@ OAB/{uf_oab} nº {numero_oab}
 
             # Nome da ação
             nome_acao_input = {"firac_issue": firac_data["issue"], "firac_conclusion": firac_data["conclusion"]}
-            if self._validar_inputs_para_chain(self.nome_acao_peticao_chain, nome_acao_input, "nome_acao_peticao_chain"):
-                nome_acao_output = self.nome_acao_peticao_chain.invoke(nome_acao_input)
-                # Extract using the output_key from the chain
-                nome_acao_text = nome_acao_output.get("nome_completo_acao", "")
+            if self._validar_inputs_para_prompt(self.NOME_ACAO_PETICAO_PROMPT, nome_acao_input, "NOME_ACAO_PETICAO_PROMPT"):
+                nome_acao_text = self._invoke_prompt(self.NOME_ACAO_PETICAO_PROMPT, nome_acao_input)
                 nome_acao_cleaned = self._clean_llm_response(nome_acao_text, "nome_acao")
                 template_data["nome_completo_acao"] = clean_text(nome_acao_cleaned).upper()
             else:
@@ -297,10 +307,8 @@ OAB/{uf_oab} nº {numero_oab}
 
             # Artigos chave
             artigos_input = {"firac_rules": firac_results.get("rules", "")}
-            if self._validar_inputs_para_chain(self.artigos_chave_peticao_chain, artigos_input, "artigos_chave_peticao_chain"):
-                artigos_output = self.artigos_chave_peticao_chain.invoke(artigos_input)
-                # Extract using the output_key from the chain
-                artigos_text = artigos_output.get("artigos_fundamentacao_chave", "")
+            if self._validar_inputs_para_prompt(self.ARTIGOS_CHAVE_PETICAO_PROMPT, artigos_input, "ARTIGOS_CHAVE_PETICAO_PROMPT"):
+                artigos_text = self._invoke_prompt(self.ARTIGOS_CHAVE_PETICAO_PROMPT, artigos_input)
                 artigos_cleaned = self._clean_llm_response(artigos_text, "artigos")
                 template_data["artigos_fundamentacao_chave"] = clean_text(artigos_cleaned)
             else:
@@ -308,22 +316,25 @@ OAB/{uf_oab} nº {numero_oab}
 
 
             fatos_input = {"firac_facts": firac_results.get("facts", "")}
-            fatos_output = self.narrativa_fatos_peticao_chain.invoke(fatos_input)
-            template_data["narrativa_dos_fatos"] = fatos_output.get("narrativa_dos_fatos", "[Narrar os fatos detalhadamente]")
+            if self._validar_inputs_para_prompt(self.NARRATIVA_FATOS_PETICAO_PROMPT, fatos_input, "NARRATIVA_FATOS_PETICAO_PROMPT"):
+                template_data["narrativa_dos_fatos"] = self._invoke_prompt(self.NARRATIVA_FATOS_PETICAO_PROMPT, fatos_input) or "[Narrar os fatos detalhadamente]"
+            else:
+                template_data["narrativa_dos_fatos"] = "[Narrar os fatos detalhadamente]"
 
 
             # Fundamentação jurídica geral
             fund_input = {"firac_issue": firac_results.get("issue", ""), "firac_rules": firac_results.get("rules", ""), "firac_application": firac_results.get("application", "")}
-            if self._validar_inputs_para_chain(self.fundamentacao_geral_peticao_chain, fund_input, "fundamentacao_geral_peticao_chain"):
-                fund_output = self.fundamentacao_geral_peticao_chain.invoke(fund_input)
-                template_data["fundamentacao_juridica_geral"] = fund_output.get("fundamentacao_juridica_geral", "[Fundamentação jurídica detalhada]")
+            if self._validar_inputs_para_prompt(self.FUNDAMENTACAO_GERAL_PETICAO_PROMPT, fund_input, "FUNDAMENTACAO_GERAL_PETICAO_PROMPT"):
+                template_data["fundamentacao_juridica_geral"] = self._invoke_prompt(self.FUNDAMENTACAO_GERAL_PETICAO_PROMPT, fund_input) or "[Fundamentação jurídica detalhada]"
             else:
                 template_data["fundamentacao_juridica_geral"] = "[Fundamentação jurídica detalhada]"
 
             # Pedidos: Usando o novo prompt para lista completa
             pedidos_input = {"firac_conclusion": firac_results.get("conclusion", ""), "firac_issue": firac_results.get("issue", "")}
-            pedidos_output = self.lista_pedidos_completa_peticao_chain.invoke(pedidos_input)
-            template_data["lista_completa_dos_pedidos_formatada"] = pedidos_output.get("lista_completa_dos_pedidos_formatada", "    a) [DEFINIR PEDIDOS];")
+            if self._validar_inputs_para_prompt(self.LISTA_PEDIDOS_COMPLETA_PETICAO_PROMPT, pedidos_input, "LISTA_PEDIDOS_COMPLETA_PETICAO_PROMPT"):
+                template_data["lista_completa_dos_pedidos_formatada"] = self._invoke_prompt(self.LISTA_PEDIDOS_COMPLETA_PETICAO_PROMPT, pedidos_input) or "    a) [DEFINIR PEDIDOS];"
+            else:
+                template_data["lista_completa_dos_pedidos_formatada"] = "    a) [DEFINIR PEDIDOS];"
             
             # Seções adicionais
             template_data["secao_gratuidade_justica"] = clean_text(outros_dados.get("texto_gratuidade", "(Seção de gratuidade de justiça...)"))

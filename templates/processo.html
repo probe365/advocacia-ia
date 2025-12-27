@@ -241,10 +241,7 @@
                       hx-post="/processos/ui/{{ processo.id_processo }}/analise/firac"
                       hx-vals='js:{focus: document.getElementById("focus-firac").value}'
                       hx-target="#firac-output" hx-indicator="#spin-firac">Gerar FIRAC</button>
-        <button class="btn btn-outline-secondary btn-sm"
-          hx-post="/processos/ui/{{ processo.id_processo }}/analise/firac/export/pdf"
-          hx-vals='js:{focus: document.getElementById("focus-firac").value}'
-          hx-target="#firac-export-area" hx-swap="innerHTML" hx-indicator="#spin-firac">Exportar PDF</button>
+        <button hx-post="/processos/ui/{{id_processo}}/export/firac/pdf" ...>Exportar PDF</button>
               <div id="spin-firac" class="htmx-indicator spinner-border spinner-border-sm" role="status"><span class="visually-hidden">...</span></div>
             </div>
             <small class="text-muted">Baseado no resumo mais recente + foco.</small>

@@ -181,7 +181,7 @@
   const alertEl = document.getElementById("faiss-alert");
   const results = document.getElementById("faiss-results");
   const hiddenCaseField = document.querySelector("form#form-busca-ementas input[name='case_id']");
-  const initialCaseId = {{ active_case_id|tojson }};
+  const initialCaseId = {{ (active_case_id|default(''))|tojson }};
   const queryContainer = document.getElementById("query-container");
   const manualQueryTemplate = queryContainer ? queryContainer.innerHTML : "";
   const resumoRadio = document.getElementById("mode-resumo");

@@ -1,4 +1,8 @@
 # pipeline.py (Versão Refatorada com suporte a multi-tenant)
+
+# No topo do seu pipeline.py (raiz) ou app.py
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 import os
 from flask import g
 import openai
@@ -19,13 +23,9 @@ from cadastro_manager import CadastroManager
 
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI  # Usando as importações mais novas
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
-from langchain.prompts import PromptTemplate
-
-# --- NOVAS IMPORTAÇÕES PARA O AGENTE (algumas não mais usadas diretamente, mas mantidas p/ compat) ---
-from langchain.agents import AgentExecutor, create_openai_tools_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_core.prompts import PromptTemplate
 
 # Importando os outros módulos do seu projeto
 from ingestion_module import IngestionHandler
@@ -85,7 +85,18 @@ class Pipeline:
         # --- Modelos e componentes básicos ---
         self.nlp = spacy.load("pt_core_news_sm")
         self.embeddings = OpenAIEmbeddings()
-        self.llm = ChatOpenAI(temperature=0.5, model="gpt-4o")
+        # --- CONFIGURAÇÃO DO GOOGLE GEMINI ---
+        # Substituímos o ChatOpenAI(model="gpt-4o") pelo ChatGoogleGenerativeAI
+        gemini_model = (
+            os.getenv("GOOGLE_GEMINI_MODEL")
+            or os.getenv("GEMINI_MODEL")
+            or "gemini-flash-latest"
+        )
+        self.llm = ChatGoogleGenerativeAI(
+            model=gemini_model,
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.2 # Menor temperatura para rascunhos jurídicos mais precisos
+        )
         self.openai_client = openai_client or openai.OpenAI()
 
         self.splitter = RecursiveCharacterTextSplitter(

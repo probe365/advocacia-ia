@@ -4,8 +4,11 @@ PY?=python
 PIP?=pip
 APP?=manage.py
 PORT?=5001
+MERMAID?=npx --yes @mermaid-js/mermaid-cli@latest mmdc
+DIAGRAM?=docs/app_workflow.mmd
+DIAGRAM_OUT?=docs/app_workflow.png
 
-.PHONY: help install install-dev run dev upgrade revision lint type test clean docker-build docker-run docker-shell docker-push
+.PHONY: help install install-dev run dev upgrade revision lint type test clean diagram docker-build docker-run docker-shell docker-push
 
 help:
 	@echo "Available targets:";
@@ -19,6 +22,7 @@ help:
 	@echo "  type         Run mypy type checking";
 	@echo "  test         Run pytest";
 	@echo "  clean        Remove Python cache artifacts";
+	@echo "  diagram      Render Mermaid .mmd to PNG (DIAGRAM, DIAGRAM_OUT)";
 	@echo "  docker-build Build docker image (IMG, TAG)";
 	@echo "  docker-run   Run container mapping port";
 	@echo "  docker-shell Open shell inside running container";
@@ -58,6 +62,9 @@ clean:
 	@find . -type d -name __pycache__ -prune -exec rm -rf {} + 2> NUL || true;
 	@find . -type f -name '*.pyc' -delete 2> NUL || true;
 	@find . -type f -name '.mypy_cache' -delete 2> NUL || true;
+
+diagram:
+	$(MERMAID) -i $(DIAGRAM) -o $(DIAGRAM_OUT)
 
 # --- Docker ---
 IMG?=adv-ia-f

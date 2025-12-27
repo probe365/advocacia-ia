@@ -359,11 +359,16 @@ class CadastroManager:
             return self._execute_query("SELECT * FROM processos WHERE id_cliente = %s AND tenant_id = %s ORDER BY data_inicio DESC", (id_cliente, self.tenant_id), fetch="all")
         return self._execute_query("SELECT * FROM processos WHERE id_cliente = %s ORDER BY data_inicio DESC", (id_cliente,), fetch="all")
 
-    def get_processo_by_id(self, id_processo: str) -> Optional[Dict[str, Any]]:
-        if self.multi_tenant:
-            return self._execute_query("SELECT * FROM processos WHERE id_processo = %s AND tenant_id = %s", (id_processo, self.tenant_id), fetch="one")
-        return self._execute_query("SELECT * FROM processos WHERE id_processo = %s", (id_processo,), fetch="one")
-
+    def get_processo_by_id(self, id_processo: str):
+        """
+        Busca o processo usando a coluna correta identificada no pgAdmin.
+        O valor 'caso_8d9e73b3' está na coluna 'id_processo'.
+        """
+        query = "SELECT * FROM processos WHERE id_processo = %s AND tenant_id = %s"
+        
+        # Usamos o motor interno que você já validou antes
+        return self._execute_query(query, (id_processo, self.tenant_id), fetch="one")
+        
     def save_processo(self, dados: Dict[str, Any], id_processo: Optional[str] = None) -> str:
         """
         Salva ou atualiza um processo com suporte aos 12 novos campos (Item 1).
@@ -1291,3 +1296,22 @@ class CadastroManager:
                 "erros": [str(e)],
                 "ids_criados": []
             }
+    # Adicione ao final da classe CadastroManager em cadastro_manager.py
+    
+
+    def get_partes_adversas_by_processo(self, id_processo):
+        """Busca os réus cadastrados para este processo."""
+        query = "SELECT * FROM partes_adversas WHERE id_processo = %s AND tenant_id = %s"
+        # Note o uso de fetch="all" para retornar uma lista de partes
+        return self._execute_query(query, (id_processo, self.tenant_id), fetch="all")
+
+    def get_advogado_by_oab(self, oab):
+        """Busca dados do advogado para a petição."""
+        query = "SELECT * FROM advogados WHERE oab = %s AND tenant_id = %s"
+        return self._execute_query(query, (oab, self.tenant_id), fetch="one")
+
+
+    def get_cliente_by_id(self, id_cliente):
+        """Busca dados do autor para a qualificação da petição."""
+        query = "SELECT * FROM clientes WHERE id_cliente = %s AND tenant_id = %s"
+        return self._execute_query(query, (id_cliente, self.tenant_id), fetch="one")

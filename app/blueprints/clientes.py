@@ -26,15 +26,18 @@ def create_cliente_api():
 
 # --- UI (compatibility) endpoints replicating old /ui paths but without internal HTTP calls ---
 @clientes_bp.route('/ui', methods=['GET'])
+@login_required
 def ui_mostrar_clientes():
     clientes = service.list_clientes()
     return render_template('clientes.html', clientes=clientes)
 
 @clientes_bp.route('/ui/form', methods=['GET'])
+@login_required
 def ui_get_form():
     return render_template('_form_cliente.html', modal_title='Adicionar Novo Cliente')
 
 @clientes_bp.route('/ui/novo', methods=['POST'])
+@login_required
 def ui_create_cliente():
     form_data = request.form.to_dict()
     service.create_cliente(form_data)
@@ -42,11 +45,13 @@ def ui_create_cliente():
     return render_template('_cards_cliente.html', clientes=clientes)
 
 @clientes_bp.route('/ui/<id_cliente>/editform', methods=['GET'])
+@login_required
 def ui_edit_form(id_cliente):
     cliente = service.get_cliente(id_cliente)
     return render_template('_form_cliente.html', cliente=cliente, modal_title='Editar Cliente')
 
 @clientes_bp.route('/ui/<id_cliente>/edit', methods=['POST'])
+@login_required
 def ui_edit_cliente(id_cliente):
     form_data = request.form.to_dict()
     service.update_cliente(id_cliente, form_data)

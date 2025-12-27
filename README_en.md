@@ -187,12 +187,24 @@ SMTP_PASSWORD=your_password
 EMAIL_FROM=noreply@advocacia-ia.com
 
 5) Run the app
-flask run
+On Windows (PowerShell), we recommend pointing Flask to `manage.py` (this ensures `.env` is loaded):
+
+```powershell
+$env:FLASK_APP="manage.py"
+flask run -p 5001
+```
+
+On Linux/Mac:
+
+```bash
+export FLASK_APP=manage.py
+flask run -p 5001
+```
 
 
 Then open:
 
-http://127.0.0.1:5000
+http://127.0.0.1:5001
 
 🚀 Deployment (DigitalOcean + Gunicorn + NGINX)
 
@@ -221,7 +233,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=/var/www/advocacia-ia-app
-ExecStart=/var/www/advocacia-ia-app/venv/bin/gunicorn -w 4 -b 127.0.0.1:8000 run:app
+ExecStart=/var/www/advocacia-ia-app/venv/bin/gunicorn -w 4 -b 127.0.0.1:8000 wsgi:application
 Restart=always
 
 [Install]

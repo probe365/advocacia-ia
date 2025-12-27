@@ -1,5 +1,10 @@
 import os
 import sys
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import current_app
 from app import create_app
 from alembic import command

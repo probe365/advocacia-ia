@@ -20,6 +20,7 @@ class User(UserMixin):
         self.nome_completo = user_data.get('nome_completo')
         self.password_hash = user_data.get('password_hash')
         self.advogado_oab = user_data.get('advogado_oab')
+        self.tenant_id = user_data.get('tenant_id')
 
     def get_id(self):
         return str(self.id)
