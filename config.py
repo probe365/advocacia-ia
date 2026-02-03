@@ -38,6 +38,20 @@ class BaseConfig:
     EMENTAS_INDEX_PATH = "data/ementas/faiss.index"
     EMENTAS_STORE_PATH = "data/ementas/store"
 
+    # ---- Config DJE (CNJ) ----
+    DJE_BASE_URL = os.getenv("DJE_BASE_URL", "https://gateway.cloud.pje.jus.br/domicilio-eletronico")
+    DJE_API_KEY = os.getenv("DJE_API_KEY")
+    DJE_TOKEN = os.getenv("DJE_TOKEN")
+    DJE_CLIENT_ID = os.getenv("DJE_CLIENT_ID")
+    DJE_CLIENT_SECRET = os.getenv("DJE_CLIENT_SECRET")
+    DJE_PUSH_SUBSCRIBE_PATH = os.getenv("DJE_PUSH_SUBSCRIBE_PATH")
+    DJE_PUSH_EVENTS_PATH = os.getenv("DJE_PUSH_EVENTS_PATH")
+    DJE_ANDAMENTOS_PATH = os.getenv("DJE_ANDAMENTOS_PATH")
+    DJE_INTEIRO_TEOR_PATH = os.getenv("DJE_INTEIRO_TEOR_PATH")
+    DJE_PUSH_CALLBACK_URL = os.getenv("DJE_PUSH_CALLBACK_URL")
+    DJE_EMAIL_WEBHOOK_SECRET = os.getenv("DJE_EMAIL_WEBHOOK_SECRET")
+    DJE_TIMEOUT = int(os.getenv("DJE_TIMEOUT", 20))
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True

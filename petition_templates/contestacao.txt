@@ -1,0 +1,30 @@
+EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA {juizo_vara} VARA {juizo_especialidade} DA COMARCA DE {juizo_comarca} - {juizo_uf}
+
+Processo nº: {numero_processo}
+
+{reu_qualificacao_completa}, por seu advogado infra-assinado, apresenta sua
+
+CONTESTAÇÃO
+
+em face de {autor_qualificacao_completa}, pelos motivos de fato e de direito a seguir expostos:
+
+I - SÍNTESE DA INICIAL
+{resumo_peticao_inicial}
+
+II - PRELIMINARES (se houver)
+{preliminares}
+
+III - MÉRITO
+{fundamentacao_merito}
+
+IV - DOS PEDIDOS
+{pedidos_contestacao}
+
+Nesses Termos,
+Pede Deferimento.
+
+{cidade_peticao}, {data_peticao}.
+
+_________________________________________
+{nome_advogado_assinatura}
+OAB/{uf_oab} nº {numero_oab}

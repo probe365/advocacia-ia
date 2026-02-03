@@ -81,9 +81,121 @@ flask db upgrade
 -----------------------------------
 ssh root@167.71.93.211
 ssh proberto@167.71.93.211
-P@ulo365
+probe143
 Adv0c@cia2025!IA
 -----------------------------------
+ssh proberto@167.71.93.211
+probe143
+
+source /var/www/advocacia-ia/venv/bin/activate
+sudo systemctl daemon-reload
+sudo systemctl restart advocacia-ia.service
+cd /var/www/advocacia-ia
+===========================================
+Rodar localmente: ==> python -m flask --app wsgi run --port 5001
+===============================================================
+postgres# passw = new-strong-pass
+
+psql -U postgres -d advocacia_ia_prod
+\dt
+\d usuários
+
+DROP TABLE IF EXISTS usuarios CASCADE;
+
+CREATE SEQUENCE IF NOT EXISTS documentos_id_seq;
+
+
+
+sudo systemctl restart gunicorn
+systemctl list-units | grep advocacia
+sudo systemctl restart advocacia-ia.service
+
+
+
+----------------------------
+============================
+UPDATE usuarios SET tenant_id = 'tenant_a' WHERE username = 'PH';
+UPDATE usuarios SET tenant_id = 'tenant_b' WHERE username = 'bebop';
+UPDATE usuarios SET tenant_id = 'tenant_c' WHERE username = 'jarthur';
+UPDATE usuarios SET tenant_id = 'tenant_d' WHERE username = 'lenovo';
+UPDATE usuarios SET tenant_id = 'tenant_e' WHERE username = 'probe';
+UPDATE usuarios SET tenant_id = 'tenant_f' WHERE username = 'proberto';
+
+UPDATE usuarios SET tenant_id = 'tenant_a' WHERE username = 'alice';
+UPDATE usuarios SET tenant_id = 'tenant_b' WHERE username = 'bob';
+
+SELECT tenant_id, username FROM usuarios ORDER BY tenant_id, username;
+SELECT id_cliente, nome_completo, tenant_id FROM clientes ORDER BY tenant_id, nome_completo;
+SELECT id, titulo, tenant_id, id_processo FROM documentos ORDER BY tenant_id, titulo;
+
+SELECT id, titulo, tenant_id, id_processo FROM documentos ORDER BY tenant_id, titulo;
+
+UPDATE usuarios SET tenant_id='tenant_psouza' WHERE username='jarthur';
+----
+sudo -u postgres psql advocacia_ia_prod -c "UPDATE clientes SET tenant_id = 'tenant_psouza' WHERE tenant_id IS public;"
+sudo -u postgres psql advocacia_ia_prod -c "UPDATE processos SET tenant_id = 'tenant_psouza' WHERE tenant_id IS public;"
+-- repeat for advogados/partes if needed
+================================
+UPDATE clientes SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+UPDATE processos SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+UPDATE advogados SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+UPDATE partes_adversas SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+UPDATE documentos SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+UPDATE escritorio SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+
+UPDATE processos SET tenant_id = 'tenant_psouza' WHERE tenant_id = 'public';
+
+
+
+
+
+SELECT tenant_id FROM usuarios;
+SELECT tenant_id, nome_do_usuario_ou_email FROM usuarios;
+
+SELECT tenant_id, COUNT(id) as total_de_usuarios 
+FROM usuarios 
+GROUP BY tenant_id 
+ORDER BY total_de_usuarios DESC;
+
+
+--------------------------------------
+sudo -u postgres psql -d advocacia_ia -c "select version_num from alembic_version;"
+
+sudo -u postgres psql -d advocacia_ia_prod -c "select version_num from alembic_version;"
+
+sudo bash scripts/deploy.sh
+
+f2ad655bdd89_add_documentos_table.py
+===========================================
+sudo -u postgres psql -d advocacia_ia_prod -c "\d public.advogados"
+----------------------------
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.partes_adversas ALTER COLUMN id_processo TYPE text USING id_processo::text;"
+
+sudo -u postgres psql -d advocacia_ia_prod -c \
+UPDATE advogados SET tenant_id = '1' WHERE tenant_id IS NULL;
+
+  "ALTER TABLE processos ALTER COLUMN advogado_oab DROP NOT NULL;
+
+psql -h 127.0.0.1 -U advapp -d advocacia_ia_prod -c "UPDATE advogados SET tenant_id = 'public' WHERE tenant_id IS NULL;"
+
+ALTER TABLE advogados ADD COLUMN tenant_id text NOT NULL DEFAULT 'public';
+CREATE INDEX IF NOT EXISTS idx_advogados_tenant_id ON advogados (tenant_id);
+
+ALTER TABLE public.advogados ADD COLUMN tenant_id text NOT NULL DEFAULT 'public';
+
+***** ALTERAR / INCLUIR NOVO CAMPO NA TABELA *****
+
+sudo -u postgres psql -d advocacia_ia_prod -c "ALTER TABLE advogados ADD COLUMN tenant_id text NOT NULL DEFAULT 'public';"
+
+sudo -u postgres psql -d advocacia_ia_prod -c "CREATE INDEX IF NOT EXISTS idx_advogados_tenant_id ON advogados (tenant_id);"
+---------------------------------
+sudo -u postgres psql -d advocacia_ia_prod -c "update alembic_version set version_num='e4a4e6dd66ae';"
+==> rerun 'alembic upgrade hear'
+
+
+
+------------------------
 cp C:\advocacia-ia-app\venv\Lib\site-packages\alembic\templates\generic\script.py.mako
 
 cp venv/lib/python3.10/site-packages/alembic/templates/generic/script.py.mako alembic/script.py.mako
@@ -102,7 +214,52 @@ Alembic directory:
 sudo systemctl restart advocacia-ia.service
 
 Activate the virtual environment:
-source /var/www/advocacia_ia/venv/bin/activate
+source /var/www/advocacia-ia/venv/bin/activate
+VVV
+python3 -m venv venv
+source venv/bin/activate
+cd /var/www/advocacia-ia
+==============================
+sudo systemctl daemon-reload
+sudo systemctl restart advocacia-ia.service
+
+sudo journalctl -u advocacia-ia.service -n 20
+
+sudo journalctl -u advocacia-ia.service -f
+
+sudo systemctl show advocacia-ia --property=Environment
+sudo -u root bash -c 'source /var/www/advocacia-ia/.env.systemd; echo MULTI_TENANT=$MULTI_TENANT DEFAULT_TENANT_ID=$DEFAULT_TENANT_ID'
+=================================
+sudo nano /var/www/advocacia-ia/cadastro_manager.py
+sudo nano /var/www/advocacia-ia/.env
+sudo nano /var/www/advocacia-ia/.env.systemd
+sudo nano /var/www/advocacia-ia/processos.py
+sudo nano /var/www/advocacia-ia/ingestion_module.py
+sudo nano /var/www/advocacia-ia/app/utils/case_summary.py
+
+nano /var/www/advocacia-ia/app/blueprints/processos.py
+# or view with:
+sed -n '1,80p' /var/www/advocacia-ia/app/blueprints/processos.py
+
+cd /var/www/advocacia-ia
+sudo git pull
+===========================================================================
+cd /var/www/advocacia-ia; source venv/bin/activate; python - <<'PY'
+import os
+print('TESSERACT_CMD=', os.getenv('TESSERACT_CMD'))
+PY
+--------------
+What Gunicorn sees:
+sudo systemctl show advocacia-ia.service | grep TESSERACT
+===========================================================================
+
+
+sudo -u postgres psql
+ALTER USER postgres WITH PASSWORD 'probe365';
+\q
+
+sudo -u postgres psql -d advocacia-ia
+
 
 Enter the PostgrSQL prompt as the postgres superuser:
 sudo -u postgres psql
@@ -159,4 +316,144 @@ git push origin main
 git clone https://github.com/probe365/advocacia-ia.git
 -----------------------
 sudo systemctl status advocacia-ia.service
+
+-------------------------
+Description=Advocacia IA Flask Application
+After=network.target
+
+
+[Service]
+User=root
+WorkingDirectory=/var/www/advocacia-ia
+EnvironmentFile=/var/www/advocacia-ia/.env.systemd
+Environment="PATH=/var/www/advocacia-ia/venv/bin"
+ExecStart=/var/www/advocacia-ia/venv/bin/gunicorn --workers 1 --timeout 300 --graceful-timeout 300 --bind 127.0.0.1:5001 wsgi:app
+Restart=always
+RestartSec=10
+
+
+[Install]
+WantedBy=multi-user.target
+================================
+cd /var/www/advocacia-ia
+source venv/bin/activate        # note: this is the venv path in the service logs
+pip install --upgrade pip
+pip install -r requirements-dev.txt
+
+sudo systemctl restart advocacia-ia.service
+
+================
+sudo -u postgres createuser advapp
+sudo -u postgres psql -c "ALTER USER advapp WITH PASSWORD 'strongpass';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE advocacia_ia_prod TO advapp;"
+
+sudo -u postgres psql -c "ALTER TABLE processos ALTER COLUMN advogado_oab DROP NOT NULL;
+==================xxxx
+
+DB_NAME=advocacia_ia_prod
+DB_USER=advapp
+DB_PASSWORD=new-strong-pass     # ou a sua senha, mas SEM acento/ç/ã etc.
+DB_HOST=127.0.0.1
+DB_PORT=5432
+MULTI_TENANT=0
+DEFAULT_TENANT_ID=public
+
+
+sudo tail -f /var/log/advocacia_ia_prod/app.log
+=========================================
+CHANGING FIELDS TYPE:
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.partes_adversas DROP CONSTRAINT fk_partes_adversas_processo;"
+-----------
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos ALTER COLUMN id_processo DROP DEFAULT;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos ALTER COLUMN id_processo TYPE text USING id_processo::text;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos ALTER COLUMN id_processo SET DEFAULT nextval('processos_id_processo_seq')::text;"
+------------------
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.partes_adversas ALTER COLUMN id_processo TYPE text USING id_processo::text;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.partes_adversas ADD CONSTRAINT fk_partes_adversas_processo FOREIGN KEY (id_processo) REFERENCES public.processos (id_processo);"
+
+============================
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos DROP CONSTRAINT processos_id_cliente_fkey;"
+---------------
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.clientes ALTER COLUMN id_cliente DROP DEFAULT;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.clientes ALTER COLUMN id_cliente TYPE text USING id_cliente::text;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.clientes ALTER COLUMN id_cliente SET DEFAULT nextval('clientes_id_cliente_seq')::text;"
+---------------------------
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos ALTER COLUMN id_cliente TYPE text USING id_cliente::text;"
+sudo -u postgres psql -d advocacia_ia_prod -c \
+  "ALTER TABLE public.processos ADD CONSTRAINT processos_id_cliente_fkey FOREIGN KEY (id_cliente) REFERENCES public.clientes (id_cliente);"
+=======================================
+
+git add cadastro_manager.py
+
+git add app/utils/case_summary.py
+git add app/blueprints/ementas.py
+git add app/blueprints/ementas_faiss.py
+
+git add templates/ementas.html
+---------------
+git commit -m "Allow editing Autor field in peticao form"
+git commit -m "Fix Gerar Peticao button in peticao form"
+git commit -m "Fix export to PDF and DOCX in peticao form"
+
+git commit -m "Fix the similarity search for HTMX and FAISS"
+---------------------------
+git push
+-----------------------------
+DO
+sudo git pull origin main
+sudo systemctl restart advocacia-ia.service
+------------------------
+==========================
+git add app/blueprints/auth.py
+git add app/services/cadastro_service.py
+git add app/blueprints/processos.py
+git add clientes.py
+git add config.py
+
+git add app/middleware.py
+
+git app/__init__.py
+git app/middleware.py
+git models.py
+
+git commit -m "Fix the multi-tenant features"
+git commit -m "Redirect root to login/dashboard"
+
+git add ingestion_module.py
+git commit -m "Fix the ingestion methods to add multimedia files"
+
+
+============
+3735 7014 UNIMED PJ
+19 3735 7015 What
+www.unimedcampinas.com.br - canais unimed - empresas clientes
+https://spmweb.unimedcampinas.com.br/financeiro/relatorio-de-fator-moderador/
+=========================================================
+SELECT facts, issue, rules, application, conclusion
+FROM process_firac
+WHERE tenant_id = 'public' AND process_id = 'caso_2e299245';
+
+SELECT tenant_id, process_id, created_at
+FROM public.process_firac
+ORDER BY created_at DESC
+LIMIT 20;
+
+SELECT tenant_id, process_id, petition_type, id, updated_at
+FROM public.petitions
+ORDER BY updated_at DESC
+LIMIT 20;
+
+
+
 

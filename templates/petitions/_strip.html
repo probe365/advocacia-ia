@@ -1,0 +1,24 @@
+{# templates/petitions/_strip.html #}
+<div class="d-flex flex-wrap gap-2">
+  {% for p in petitions %}
+    {% set pid = p.id or p["id"] %}
+    {% set ptype = (p.petition_type or p["petition_type"] or "")|upper %}
+    {% set status = (p.status or p["status"] or "draft")|lower %}
+
+    <button type="button"
+            class="btn btn-sm btn-outline-light d-flex align-items-center gap-2"
+            hx-get="/petitions/{{ pid }}/partial/editor"
+            hx-target="#petition-editor"
+            hx-swap="innerHTML">
+      <span class="fw-semibold">{{ ptype }}</span>
+
+      <span class="badge {% if status in ['final','finalizada'] %}app-badge{% else %}bg-warning text-dark{% endif %}">
+        {{ status|upper }}
+      </span>
+    </button>
+  {% endfor %}
+
+  {% if not petitions %}
+    <div class="text-muted small">Nenhuma petição ainda. Clique em +Inicial/+Contestação/+Réplica.</div>
+  {% endif %}
+</div>

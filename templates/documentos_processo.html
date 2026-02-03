@@ -2,16 +2,14 @@
 
 {% block content %}
 <div class="container mt-3">
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div class="page-header">
     <div>
-      <h4>Documentos do Processo</h4>
-      <small class="text-muted">
-        Processo: {{ processo.nome_caso or processo.numero_cnj or id_processo }}
-      </small>
+      <h1 class="page-title">Documentos do Processo</h1>
+      <p class="page-subtitle">Processo: {{ processo.nome_caso or processo.numero_cnj or id_processo }}</p>
     </div>
-    <div>
+    <div class="page-actions">
       <a href="{{ url_for('processos.painel_processo', id_processo=id_processo) }}"
-         class="btn btn-sm btn-outline-secondary">
+         class="btn btn-sm btn-outline-light">
         ← Voltar ao Painel do Processo
       </a>
     </div>
@@ -31,12 +29,12 @@
   <div id="upload-area" class="mb-4"></div>
 
   <!-- Lista de documentos -->
-  <div id="lista-documentos" class="mb-4">
+  <div id="lista-documentos" class="mb-4 list-group">
     {% include "_lista_documentos.html" with context %}
   </div>
 
     <!-- PREVIEW GENÉRICO (HTMX vai trocar o conteúdo deste card) -->
-  <div id="preview-area" class="card bg-dark border-secondary">
+  <div id="preview-area" class="card app-card">
     <div class="card-header">
       <strong>Preview do Documento</strong>
     </div>

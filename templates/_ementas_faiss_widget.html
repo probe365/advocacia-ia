@@ -1,5 +1,5 @@
 {# templates/_ementas_faiss_widget.html #}
-<div class="card bg-dark text-light border-secondary mt-3">
+<div class="card app-card mt-3">
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>
       <strong>Pesquisa de Ementas por Similaridade (FAISS)</strong>
@@ -14,14 +14,14 @@
     <form id="faiss-form" onsubmit="return false;">
       <div class="mb-3">
         <label class="form-label">Digite/cole sua base textual</label>
-        <textarea id="faiss-query" class="form-control bg-secondary text-light" rows="4"
+        <textarea id="faiss-query" class="form-control" rows="4"
           placeholder="Ex.: ação de indenização por danos morais em contrato bancário"></textarea>
       </div>
 
       <div class="d-flex gap-3 align-items-end mb-3">
         <div style="max-width: 120px;">
           <label class="form-label">Top-K</label>
-          <input id="faiss-topk" type="number" min="1" max="50" class="form-control bg-secondary text-light" value="10">
+          <input id="faiss-topk" type="number" min="1" max="50" class="form-control" value="10">
         </div>
         <button id="btn-faiss-search" class="btn btn-primary">Buscar</button>
         <span id="faiss-status" class="ms-2 small text-info"></span>
@@ -31,8 +31,8 @@
     <div id="faiss-alert" class="alert d-none" role="alert"></div>
 
     <div class="table-responsive">
-      <table class="table table-dark table-hover table-sm align-middle">
-        <thead class="table-secondary text-dark">
+      <table class="table table-hover table-sm align-middle">
+        <thead>
           <tr>
             <th style="width:5%">#</th>
             <th style="width:20%">Título</th>

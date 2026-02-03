@@ -1,15 +1,23 @@
 {% for cliente in clientes %}
-<div class="col-md-6 col-lg-4 mb-4">
-  <div class="card">
+<div class="col-md-6 col-lg-4">
+  <div class="card app-card h-100">
     <div class="card-body">
-      <h5 class="card-title">{{ cliente.nome_completo }}</h5>
-      <h6 class="card-subtitle mb-2 text-muted">{{ cliente.cpf_cnpj }}</h6>
+      <h5 class="card-title mb-1">{{ cliente.nome_completo }}</h5>
+      <h6 class="card-subtitle mb-3 text-muted">{{ cliente.cpf_cnpj }}</h6>
       <p class="card-text mb-1">
         <small>
           <strong>Email:</strong> {{ cliente.email or 'Não informado' }}<br>
           <strong>Telefone:</strong> {{ cliente.telefone or 'Não informado' }}<br>
-          <strong>ID Cliente:</strong> 
-          <code class="text-primary" style="cursor: pointer; font-size: 0.75rem;" 
+          <strong>Nacionalidade:</strong> {{ cliente.nacionalidade or 'Não informado' }}<br>
+          <strong>Estado Civil:</strong> {{ cliente.estado_civil or 'Não informado' }}<br>
+          <strong>Profissão:</strong> {{ cliente.profissao or 'Não informado' }}<br>
+          <strong>Endereço Completo:</strong> {{ cliente.endereco_completo or 'Não informado' }}<br>
+          <strong>RG - IE:</strong> {{ cliente.rg_ie or 'Não informado' }}<br>
+          <strong>Observações:</strong> {{ cliente.observacoes or 'Não informado' }}<br>
+
+
+              <strong>ID Cliente:</strong> 
+              <code class="text-info" style="cursor: pointer; font-size: 0.75rem;" 
                 onclick="navigator.clipboard.writeText('{{ cliente.id_cliente }}'); this.innerHTML='✓ Copiado!'; setTimeout(()=>this.innerHTML='{{ cliente.id_cliente }}', 2000);"
                 title="Clique para copiar">{{ cliente.id_cliente }}</code>
         </small>

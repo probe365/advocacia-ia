@@ -1,29 +1,38 @@
-# from flask import Blueprint, jsonify, request, render_template, flash, redirect, url_for, send_from_directory, send_file, session, g
-from flask_login import login_required, current_user
-from app.services.cadastro_service import CadastroService
-from cadastro_manager import CadastroManager
-from pipeline import Pipeline
-from werkzeug.utils import secure_filename
-import os, hashlib, logging, base64
+import base64
+import hashlib
+import logging
+import os
 import re
-import openai
-from typing import Optional
-
-# Importe o novo serviço no topo do processos.py
-from app.services.petition_service import PetitionService
-from app.services.export_service import ExportService
-
-from flask import (
-    Blueprint, render_template, request, redirect, url_for,
-    flash, current_app, send_file, abort, g, session, jsonify, Response
-)
-
 from mimetypes import guess_type
 from pathlib import Path
+from typing import Optional
 
+import openai
+from flask import (
+    Blueprint,
+    Response,
+    abort,
+    current_app,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    session,
+    url_for,
+)
+from flask_login import current_user, login_required
+from werkzeug.utils import secure_filename
+
+from app.services.cadastro_service import CadastroService
+from app.services.export_service import ExportService
+from app.services.petition_service import PetitionService
+from cadastro_manager import CadastroManager
+from pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
-
 
 def _build_pipeline(case_id: str, tenant_id: Optional[str] = None) -> Pipeline:
     """Create a Pipeline with proper defaults instead of stubbed handlers."""
@@ -362,6 +371,162 @@ def painel_processo(id_processo):
         advs = []
     return render_template('processo.html', processo=proc, documentos=documentos, chat_history=chat_history, case_code=case_code, advogado=advogado, advogados=advs)
 
+
+
+def _mgr():
+    return CadastroManager(tenant_id=str(g.tenant_id))
+
+
+
+@processos_bp.route("/<process_id>/participants")
+@login_required
+def participants(process_id: str):
+    tenant_id = (
+        getattr(g, "tenant_id", None)
+        or getattr(current_user, "tenant_id", None)
+        or os.getenv("DEFAULT_TENANT_ID", "public")
+    )
+    mgr = CadastroManager(str(tenant_id))
+    panel_id = request.args.get("partial_id") or "pp-panel"
+    logger.debug(
+        "[participants] request",
+        extra={
+            "process_id": process_id,
+            "tenant_id": getattr(g, "tenant_id", None),
+            "panel_id": panel_id,
+        },
+    )
+
+    try:
+        processo = mgr.get_processo_by_id(process_id)
+        if not processo:
+            abort(404)
+
+        cliente = mgr.get_cliente_by_id(processo.get("id_cliente")) if processo.get("id_cliente") else None
+        adversos = mgr.get_partes_adversas_by_processo(process_id) or []
+
+        # ✅ Use o método “rico” (já traz nome/cpf/endereco via join)
+        participants = mgr.get_process_participants(process_id) or []
+
+        client_role = (processo.get("tipo_parte") or "autor").lower()
+        opposite_role = "reu" if client_role == "autor" else ("autor" if client_role == "reu" else "reu")
+
+        primary_opponent = mgr.get_primary_participant(process_id, opposite_role)
+        primary_opponent_resolved = None
+
+        if primary_opponent and (primary_opponent.get("party_kind") == "adverso"):
+            pid = primary_opponent.get("party_id")
+            try:
+                primary_opponent_resolved = mgr._execute_query(
+                    """
+                    SELECT id, nome_completo, cpf_cnpj, endereco_completo
+                    FROM partes_adversas
+                    WHERE tenant_id=%s AND id=%s
+                    LIMIT 1
+                    """,
+                    (mgr.tenant_id, int(pid)),
+                    fetch="one",
+                )
+            except Exception:
+                primary_opponent_resolved = None
+
+        return render_template(
+            "processos/_participants.html",
+            processo=processo,
+            cliente=cliente,
+            adversos=adversos,
+            participants=participants,
+            primary_opponent=primary_opponent,
+            primary_opponent_resolved=primary_opponent_resolved,
+            panel_id=panel_id,
+        )
+    except Exception as exc:  # pragma: no cover -- auxiliar para debug em produção
+        logger.exception(
+            "Falha ao carregar participantes",
+            extra={
+                "process_id": process_id,
+                "tenant_id": getattr(g, "tenant_id", None),
+                "panel_id": panel_id,
+            },
+        )
+        return render_template(
+            "processos/_participants_error.html",
+            message=str(exc),
+            panel_id=panel_id,
+            process_id=process_id,
+        )
+
+@processos_bp.route("/<process_id>/participants/set-primary", methods=["POST"])
+@login_required
+def participants_set_primary(process_id: str):
+    mgr = _mgr()
+    processo = mgr.get_processo_by_id(process_id)
+    if not processo:
+        abort(404)
+
+    party_kind = (request.form.get("party_kind") or "").strip().lower()
+    party_id = (request.form.get("party_id") or "").strip()
+    role = (request.form.get("role") or "").strip().lower()
+    is_primary = (request.form.get("is_primary") or "true").lower() in ("1", "true", "yes", "on")
+
+    if party_kind not in ("cliente", "adverso"):
+        abort(400, "party_kind inválido")
+    if role not in ("autor", "reu", "terceiro", "assistente", "outro", "reclamante", "reclamada"):
+        # se você quiser aceitar reclamante/reclamada na tabela, inclua no CHECK do banco também
+        abort(400, "role inválido")
+    if not party_id:
+        abort(400, "party_id obrigatório")
+
+    mgr.upsert_process_participant(
+        process_id=process_id,
+        party_kind=party_kind,
+        party_id=party_id,
+        role=role,
+        is_primary=is_primary,
+    )
+
+    return participants(process_id)
+
+@processos_bp.route("/<process_id>/participants/add-adverso", methods=["POST"])
+@login_required
+def participants_add_adverso(process_id: str):
+    mgr = _mgr()
+    processo = mgr.get_processo_by_id(process_id)
+    if not processo:
+        abort(404)
+
+    adverso_id = (request.form.get("adverso_id") or "").strip()
+    role = (request.form.get("role") or "").strip().lower()
+
+    if not adverso_id:
+        abort(400, "adverso_id obrigatório")
+
+    if role not in ("autor", "reu", "terceiro", "assistente", "outro", "reclamante", "reclamada"):
+        abort(400, "role inválido")
+
+    mgr.upsert_process_participant(
+        process_id=process_id,
+        party_kind="adverso",
+        party_id=adverso_id,
+        role=role,
+        is_primary=False,
+    )
+
+    return participants(process_id)
+
+@processos_bp.route("/<process_id>/participants/remove", methods=["POST"])
+@login_required
+def participants_remove(process_id: str):
+    mgr = _mgr()
+    participant_id = request.form.get("participant_id")
+    if not participant_id:
+        abort(400, "participant_id obrigatório")
+
+    mgr.delete_process_participant(int(participant_id))
+    return participants(process_id)
+
+
+
 @processos_bp.route('/ui/<id_processo>/atualizar_advogado', methods=['POST'])
 @login_required
 def ui_atualizar_advogado(id_processo):
@@ -459,22 +624,36 @@ def ui_resumo(id_processo):
                 resumo = f"(Fallback) Pré-visualização dos primeiros trechos:\n\n{fallback_text}"
             except Exception as fe:
                 resumo = f"Não foi possível gerar fallback: {fe}"
+
         badge = "<span class='badge bg-info ms-2'>cache</span>" if from_cache else ""
+        # Salva o resumo em cache para exportação
+        try:
+            cache_dir = pipeline.case_dir / 'cache'
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            (cache_dir / 'resumo_last.txt').write_text(resumo or '', encoding='utf-8', errors='replace')
+        except Exception:
+            logger.warning("Falha ao cachear resumo_last.txt", exc_info=True)
+
         return f"""
         <div class='card mt-4'>
-            <div class='card-header'>Resumo do Caso {badge}</div>
-            <div class='card-body'><p style='white-space: pre-wrap;'>{resumo}</p>
-              <div class='d-flex gap-2 flex-wrap'>
-                <button class='btn btn-sm btn-outline-secondary'
-                  hx-post='/processos/ui/{id_processo}/export/resumo'
-                  hx-vals='js:{{focus: document.getElementById("focus-resumo").value}}'
-                  hx-target='#download-area'
-                  hx-swap='outerHTML'>Exportar TXT</button>
-                <button hx-post="/processos/ui/{{id_processo}}/export/resumo/pdf" ...>Exportar PDF</button>
-              </div>
-              <div id='download-area' class='mt-2'></div>
-              <div id='download-area-pdf' class='mt-1'></div>
-            </div>
+                <div class='card-header'>Resumo do Caso {badge}</div>
+                <div class='card-body'>
+                    <p style='white-space: pre-wrap;'>{resumo}</p>
+                    <div class='d-flex gap-2 flex-wrap'>
+                        <button class='btn btn-sm btn-outline-secondary'
+                            hx-post='/processos/ui/{id_processo}/export/resumo'
+                              hx-vals='js:{{focus: document.getElementById("focus-resumo").value}}'
+                            hx-target='#download-area'
+                            hx-swap='outerHTML'>Exportar TXT</button>
+                        <button class='btn btn-sm btn-outline-secondary'
+                            hx-post='/processos/ui/{id_processo}/export/resumo/pdf'
+                              hx-vals='js:{{focus: document.getElementById("focus-resumo").value}}'
+                            hx-target='#download-area-pdf'
+                            hx-swap='outerHTML'>Exportar PDF</button>
+                    </div>
+                    <div id='download-area' class='mt-2'></div>
+                    <div id='download-area-pdf' class='mt-1'></div>
+                </div>
         </div>
         """
     except Exception as e:
@@ -514,7 +693,19 @@ def ui_export_universal(id_processo, tipo, formato):
 
     # 1. Coleta o Conteúdo Baseado no Tipo
     if tipo == 'resumo':
-        conteudo = pipeline.summarize()
+        # Tenta ler do cache gerado na interface
+        cache_dir = pipeline.case_dir / 'cache'
+        cache_file = cache_dir / 'resumo_last.txt'
+        conteudo = None
+        if cache_file.exists():
+            conteudo = cache_file.read_text(encoding='utf-8', errors='replace').strip()
+        # Se o cache está vazio ou tem texto padrão, gera novamente
+        if not conteudo or conteudo.startswith("Sem conteúdo"):
+            focus = (request.form.get('focus') or request.args.get('focus') or '').strip()
+            resumo, from_cache = pipeline.summarize_with_cache(focus or 'Resumo geral do caso')
+            conteudo = resumo
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(conteudo or '', encoding='utf-8', errors='replace')
         titulo = "Resumo Estruturado do Caso"
     elif tipo == 'firac':
         result = pipeline.generate_firac()
@@ -601,6 +792,9 @@ def ui_download_export(id_processo, filename):
 @processos_bp.route('/ui/<id_processo>/analise/firac', methods=['POST'])
 def ui_analise_firac(id_processo):
     try:
+        import json
+        import html as html_lib
+
         pipeline = _build_pipeline(
             case_id=id_processo,
             tenant_id=getattr(g, 'tenant_id', None),
@@ -608,24 +802,121 @@ def ui_analise_firac(id_processo):
 
         focus = (request.form.get('focus') or '').strip()
         result = pipeline.generate_firac(focus=focus)
+
         if result.get('data'):
-            d = result['data']
-            # Render FIRAC formatado em HTML
+            d = result['data'] or {}
+
+            # Badge de cache
             cached_badge = "<span class='badge bg-info ms-2'>cache</span>" if result.get('cached') else ''
-            html = [f"<div class='firac-result'><div class='mb-2 small text-muted'>FIRAC {'(cache reutilizado)' if result.get('cached') else '(gerado)'}{cached_badge}</div>"]
+
+            # Normaliza facts/rules para render e para JSON
             facts = d.get('facts') or []
-            html.append("<h6>Fatos (Facts)</h6><ol>" + "".join([f"<li>{f}</li>" for f in facts]) + "</ol>")
-            html.append(f"<h6>Questão (Issue)</h6><p>{d.get('issue','')}</p>")
             rules = d.get('rules') or []
-            html.append("<h6>Regras (Rule)</h6><ol>" + "".join([f"<li>{r}</li>" for r in rules]) + "</ol>")
-            html.append(f"<h6>Aplicação (Application)</h6><p>{d.get('application','')}</p>")
-            html.append(f"<h6>Conclusão (Conclusion)</h6><p>{d.get('conclusion','')}</p>")
-            html.append("</div>")
-            return "".join(html)
-        else:
-            return f"<pre style='white-space:pre-wrap;font-size:0.85rem;'>{result.get('raw')}</pre>"
+
+            # Para o JSON, queremos salvar texto (você pode optar por lista também — aqui vai texto)
+            facts_text = "\n".join(facts) if isinstance(facts, list) else str(facts)
+            rules_text = "\n".join(rules) if isinstance(rules, list) else str(rules)
+
+            payload = {
+                "facts": facts_text or "",
+                "issue": (d.get("issue") or ""),
+                "rules": rules_text or "",
+                "application": (d.get("application") or ""),
+                "conclusion": (d.get("conclusion") or ""),
+            }
+
+            # Salva FIRAC no banco (não depende do auto-save JS)
+            try:
+                mgr = CadastroManager(getattr(g, "tenant_id", None))
+                user_id = None
+                try:
+                    if current_user and current_user.is_authenticated:
+                        user_id = int(current_user.get_id())
+                except Exception:
+                    user_id = None
+                mgr.upsert_process_firac(
+                    process_id=id_processo,
+                    facts=payload.get("facts") or "",
+                    issue=payload.get("issue") or "",
+                    rules=payload.get("rules") or "",
+                    application=payload.get("application") or "",
+                    conclusion=payload.get("conclusion") or "",
+                    created_by_user_id=user_id,
+                    source="ui",
+                )
+            except Exception as e:
+                logger.warning("Falha ao salvar FIRAC automaticamente: %s", e)
+
+            # JSON embutido no HTML (sem escape HTML; protege contra </script>)
+            json_blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+
+            html_parts = [
+                "<div class='firac-result'>",
+                f"<div class='mb-2 small text-muted'>FIRAC {'(cache reutilizado)' if result.get('cached') else '(gerado)'}{cached_badge}</div>",
+                f"<script type='application/json' id='firac-json'>{json_blob}</script>",
+            ]
+
+            # Render Facts (como lista se vier lista; senão parágrafo)
+            if isinstance(facts, list):
+                html_parts.append("<h6>Fatos (Facts)</h6><ol>" + "".join([f"<li>{html_lib.escape(str(f))}</li>" for f in facts]) + "</ol>")
+            else:
+                html_parts.append("<h6>Fatos (Facts)</h6><p style='white-space:pre-wrap;'>" + html_lib.escape(str(facts or "")) + "</p>")
+
+            html_parts.append(f"<h6>Questão (Issue)</h6><p style='white-space:pre-wrap;'>{html_lib.escape(str(d.get('issue','') or ''))}</p>")
+
+            # Render Rules
+            if isinstance(rules, list):
+                html_parts.append("<h6>Regras (Rule)</h6><ol>" + "".join([f"<li>{html_lib.escape(str(r))}</li>" for r in rules]) + "</ol>")
+            else:
+                html_parts.append("<h6>Regras (Rule)</h6><p style='white-space:pre-wrap;'>" + html_lib.escape(str(rules or "")) + "</p>")
+
+            html_parts.append(f"<h6>Aplicação (Application)</h6><p style='white-space:pre-wrap;'>{html_lib.escape(str(d.get('application','') or ''))}</p>")
+            html_parts.append(f"<h6>Conclusão (Conclusion)</h6><p style='white-space:pre-wrap;'>{html_lib.escape(str(d.get('conclusion','') or ''))}</p>")
+
+            html_parts.append("</div>")
+            return "".join(html_parts)
+
+        # Se não veio data estruturada, volta raw como antes (escaped)
+        raw = result.get('raw') or ''
+        return f"<pre style='white-space:pre-wrap;font-size:0.85rem;'>{html_lib.escape(str(raw))}</pre>"
+
     except Exception as e:
         return f"<div class='alert alert-danger'>Erro FIRAC: {e}</div>", 500
+
+
+@processos_bp.route("/<process_id>/firac/save", methods=["POST"])
+@login_required
+def save_firac(process_id: str):
+    mgr = CadastroManager(g.tenant_id)
+
+    data = request.get_json(silent=True) or {}
+
+    def _as_text(value: object) -> str:
+        if isinstance(value, list):
+            return "\n".join([str(v) for v in value if v is not None]).strip()
+        return str(value or "").strip()
+
+    facts = _as_text(data.get("facts"))
+    issue = _as_text(data.get("issue"))
+    rules = _as_text(data.get("rules"))
+    application = _as_text(data.get("application"))
+    conclusion = _as_text(data.get("conclusion"))
+
+    # pelo menos 1 campo para não salvar lixo
+    if not any([facts, issue, rules, application, conclusion]):
+        abort(400, "FIRAC vazio")
+
+    mgr.upsert_process_firac(
+        process_id=process_id,
+        facts=facts,
+        issue=issue,
+        rules=rules,
+        application=application,
+        conclusion=conclusion,
+        created_by_user_id=int(current_user.get_id()),
+        source="ui",
+    )
+    return jsonify({"ok": True})
 
 
 @processos_bp.route('/ui/<id_processo>/peticao/form', methods=['GET'])
@@ -1160,18 +1451,54 @@ def ui_preview_documento(id_processo, filename):
         )
 
         uploads_dir = pipeline.case_dir / 'uploads'
+        files_dir = pipeline.case_dir / 'files'
         target = uploads_dir / filename
+        base_dir_name = "uploads"
 
         if not target.exists():
-            return f"<div class='alert alert-warning mt-2'>Arquivo não encontrado para preview: {filename}</div>"
+            alt_target = files_dir / filename
+            if alt_target.exists():
+                target = alt_target
+                base_dir_name = "files"
+            else:
+                candidate_names = []
+                if filename.endswith("_audio_extrato"):
+                    candidate_names.append(filename[: -len("_audio_extrato")])
+                stem = Path(filename).stem
+                if stem:
+                    for ext in (".mp4", ".mov", ".mp3", ".wav", ".txt"):
+                        candidate_names.append(f"{stem}{ext}")
+
+                for candidate in candidate_names:
+                    if not candidate:
+                        continue
+                    cand_upload = uploads_dir / candidate
+                    cand_files = files_dir / candidate
+                    if cand_upload.exists():
+                        target = cand_upload
+                        base_dir_name = "uploads"
+                        filename = candidate
+                        break
+                    if cand_files.exists():
+                        target = cand_files
+                        base_dir_name = "files"
+                        filename = candidate
+                        break
+
+                if not target.exists():
+                    return (
+                        "<div class='alert alert-warning mt-2'>"
+                        f"Arquivo não encontrado para preview: {filename}"
+                        "</div>"
+                    )
 
         ext = target.suffix.lower()
 
         # URL pública já existente para servir o arquivo
         file_url = url_for(
-            'processos.ui_arquivo',
+            "processos.ui_arquivo",
             id_processo=id_processo,
-            nome_arquivo=f"uploads/{filename}",  # 🔥 aponta para subpasta uploads
+            nome_arquivo=f"{base_dir_name}/{filename}",
             _external=False,
         )
 
@@ -1670,8 +1997,32 @@ def processo_edit_form(id_processo):
         
         # Buscar advogados para dropdown
         advogados = mgr.get_advogados()
+
+        participants = []
+        primary_participant = None
+        opposite_role = 'reu'
+        try:
+            participants = mgr.get_process_participants(id_processo) or []
+            client_role = (processo.get('tipo_parte') or 'autor').lower()
+            opposite_role = 'reu' if client_role == 'autor' else ('autor' if client_role == 'reu' else 'reu')
+            for p in participants:
+                if (
+                    p.get('is_primary')
+                    and (p.get('role') or '').lower() == opposite_role
+                    and (p.get('party_kind') or '').lower() == 'adverso'
+                ):
+                    primary_participant = p
+                    break
+        except Exception:
+            primary_participant = None
         
-        return render_template('processo_edit.html', processo=processo, advogados=advogados)
+        return render_template(
+            'processo_edit.html',
+            processo=processo,
+            advogados=advogados,
+            primary_participant=primary_participant,
+            primary_opposite_role=opposite_role,
+        )
         
     except Exception as e:
         logger.error(f"Erro ao carregar formulário de edição: {e}", exc_info=True)
@@ -1719,6 +2070,52 @@ def processo_save(id_processo):
         logger.info(f"[PROCESSO SAVE] Salvando processo {id_processo} com dados: {list(dados.keys())}")
         mgr.save_processo(dados, id_processo)
         logger.info(f"[PROCESSO SAVE] Processo {id_processo} salvo com sucesso!")
+
+        primary_opponent_id = (request.form.get('primary_opponent_id') or '').strip()
+        logger.info(
+            "[PROCESSO SAVE] Form extras",
+            extra={
+                "process_id": id_processo,
+                "primary_opponent_id": primary_opponent_id,
+                "primary_opponent_role": request.form.get('primary_opponent_role'),
+                "primary_opponent_kind": request.form.get('primary_opponent_kind'),
+            },
+        )
+        if primary_opponent_id:
+            party_kind = (request.form.get('primary_opponent_kind') or 'adverso').strip().lower() or 'adverso'
+            client_role = (dados.get('tipo_parte') or processo.get('tipo_parte') or 'autor' ).lower()
+            inferred_opposite = 'reu' if client_role == 'autor' else ('autor' if client_role == 'reu' else 'reu')
+            role_candidate = (request.form.get('primary_opponent_role') or '').strip().lower()
+            allowed_roles = {'autor', 'reu', 'terceiro', 'assistente', 'outro', 'reclamante', 'reclamada'}
+            role = role_candidate if role_candidate in allowed_roles else inferred_opposite
+            try:
+                mgr.upsert_process_participant(
+                    process_id=id_processo,
+                    party_kind=party_kind,
+                    party_id=str(primary_opponent_id),
+                    role=role,
+                    is_primary=True,
+                )
+                logger.info(
+                    "[PROCESSO SAVE] Participante primário atualizado",
+                    extra={
+                        "process_id": id_processo,
+                        "party_id": primary_opponent_id,
+                        "role": role,
+                        "party_kind": party_kind,
+                    },
+                )
+            except Exception:
+                logger.warning(
+                    "[PROCESSO SAVE] Falha ao atualizar participante primário",
+                    extra={
+                        "process_id": id_processo,
+                        "party_id": primary_opponent_id,
+                        "role": role,
+                        "party_kind": party_kind,
+                    },
+                    exc_info=True,
+                )
         
         flash('Processo atualizado com sucesso!', 'success')
         return redirect(url_for('processos.painel_processo', id_processo=id_processo))

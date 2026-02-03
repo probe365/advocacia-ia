@@ -1,4 +1,6 @@
 1. English README (you can save as README_en.md)
+https://github.com/probe365/advocacia-ia
+
 # 🧠 Advocacia e IA — Intelligent Legal Case Management System
 
 **Advocacia e IA** is a modern web platform for law firms, combining client and case management with AI-powered legal analysis.

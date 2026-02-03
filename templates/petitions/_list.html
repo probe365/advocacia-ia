@@ -1,0 +1,30 @@
+<div class="list-group list-group-flush">
+  {% if not petitions %}
+    <div class="text-muted small p-2">Nenhuma petição criada ainda.</div>
+  {% else %}
+    {% for p in petitions %}
+      {% set ptype = (p.petition_type or p["petition_type"] or "") %}
+      {% set status = (p.status or p["status"] or "draft") %}
+      <button
+        type="button"
+        class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+        data-petition-id="{{ p.id or p['id'] }}"
+        hx-get="/petitions/{{ p.id or p['id'] }}/partial/editor"
+        hx-target="#petition-editor"
+        hx-swap="innerHTML"
+      >
+        <div class="me-2">
+          <div class="fw-bold">{{ ptype|upper }}</div>
+          <div class="small text-muted">
+            Atualizada: {{ (p.updated_at or p["updated_at"]) }}
+          </div>
+        </div>
+
+        <span class="badge {% if (status|lower) in ['final','finalizada'] %}app-badge{% else %}bg-warning text-dark{% endif %}">
+          {{ status|upper }}
+        </span>
+      </button>
+    {% endfor %}
+    <div class="small text-muted pt-2">Dica: clique em um item para abrir o editor.</div>
+  {% endif %}
+</div>

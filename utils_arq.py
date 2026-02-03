@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from io import BytesIO
 from typing import List, Dict, Any
+import os
 
 import pdfplumber
 import pytesseract
@@ -78,3 +79,27 @@ def process_uploaded_files(uploaded_files: List[Any]) -> List[Dict[str, str]]:
             logger.warning(f"Nenhum conteúdo de texto foi extraído de: {file_name}")
             
     return documents
+
+def render_petition_template(template_path, context):
+    """
+    Renders a petition template with the provided context.
+    :param template_path: Path to the template file
+    :param context: Dictionary with keys matching placeholders in the template
+    :return: Rendered string
+    """
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template = f.read()
+    return template.format(**context)
+
+# Example usage:
+if __name__ == "__main__":
+    context = {
+        "client_name": "João Silva",
+        "process_number": "12345-67.2025.8.26.0001",
+        "lawyer_name": "Dr. Carlos Souza"
+    }
+    result = render_petition_template(
+        os.path.join("petition_templates", "initial_petition_template.txt"),
+        context
+    )
+    print(result)

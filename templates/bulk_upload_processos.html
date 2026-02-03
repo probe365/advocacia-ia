@@ -6,13 +6,16 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-10 offset-md-1">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>
-                    <i class="fas fa-upload"></i> Upload em Massa de Processos
-                </h2>
-                <a href="https://github.com/seu-repo/blob/main/BULK_UPLOAD_GUIDE.md" target="_blank" class="btn btn-sm btn-info">
-                    <i class="fas fa-book"></i> Ver Documentação
-                </a>
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title"><i class="fas fa-upload"></i> Upload em Massa de Processos</h1>
+                    <p class="page-subtitle">Importe processos rapidamente com modelo CSV padronizado.</p>
+                </div>
+                <div class="page-actions">
+                    <a href="https://github.com/seu-repo/blob/main/BULK_UPLOAD_GUIDE.md" target="_blank" class="btn btn-sm btn-outline-light">
+                        <i class="fas fa-book"></i> Ver Documentação
+                    </a>
+                </div>
             </div>
             
             {% if cliente %}
@@ -27,8 +30,8 @@
             {% endif %}
 
             <!-- Informações de Formato -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
+            <div class="card app-card mb-4">
+                <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-file-csv"></i> Formato do Arquivo CSV
@@ -182,8 +185,8 @@
             </div>
 
             <!-- Upload Area -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+            <div class="card app-card mb-4">
+                <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-cloud-upload-alt"></i> Selecione ou Arraste seu Arquivo CSV
                     </h5>

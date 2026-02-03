@@ -6,13 +6,13 @@
 <div class="container-fluid py-4">
   
   <!-- Header -->
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-      <i class="bi bi-people-fill"></i> Partes Adversas
-      <small class="text-muted" style="font-size:0.6em;">{{ processo.nome_caso }}</small>
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-secondary">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title"><i class="bi bi-people-fill"></i> Partes Adversas</h1>
+      <p class="page-subtitle">Processo: {{ processo.nome_caso }}</p>
+    </div>
+    <div class="page-actions">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-light">
         <i class="bi bi-arrow-left"></i> Voltar ao Processo
       </a>
     </div>
@@ -26,8 +26,8 @@
   </div>
 
   <!-- Tabela de Partes Adversas -->
-  <div class="card">
-    <div class="card-header bg-info text-white">
+  <div class="card app-card">
+    <div class="card-header">
       <h5 class="mb-0">
         <i class="bi bi-list-ul"></i> Partes Cadastradas 
         <span class="badge bg-light text-dark" id="total-partes">{{ partes|length }}</span>
@@ -108,11 +108,11 @@
 <div class="modal fade" id="modalParte" tabindex="-1" aria-labelledby="modalParteLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
+      <div class="modal-header">
         <h5 class="modal-title" id="modalParteLabel">
           <i class="bi bi-person-plus"></i> <span id="modal-title-text">Adicionar Parte Adversa</span>
         </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       
       <form id="formParte" onsubmit="salvarParte(event)" class="needs-validation" novalidate>
@@ -121,8 +121,8 @@
         <div class="modal-body">
           
           <!-- Seção 1: Identificação -->
-          <div class="card mb-3">
-            <div class="card-header bg-light">
+          <div class="card app-card mb-3">
+            <div class="card-header">
               <strong>Identificação</strong>
             </div>
             <div class="card-body">
@@ -178,8 +178,8 @@
           </div>
 
           <!-- Seção 2: Endereço -->
-          <div class="card mb-3">
-            <div class="card-header bg-light">
+          <div class="card app-card mb-3">
+            <div class="card-header">
               <strong>Endereço</strong>
             </div>
             <div class="card-body">
@@ -235,8 +235,8 @@
           </div>
 
           <!-- Seção 3: Contato -->
-          <div class="card mb-3">
-            <div class="card-header bg-light">
+          <div class="card app-card mb-3">
+            <div class="card-header">
               <strong>Contato</strong>
             </div>
             <div class="card-body">
@@ -261,8 +261,8 @@
           </div>
 
           <!-- Seção 4: Advogado -->
-          <div class="card mb-3">
-            <div class="card-header bg-light">
+          <div class="card app-card mb-3">
+            <div class="card-header">
               <strong>Advogado da Parte</strong>
             </div>
             <div class="card-body">
@@ -286,8 +286,8 @@
           </div>
 
           <!-- Seção 5: Observações -->
-          <div class="card">
-            <div class="card-header bg-light">
+          <div class="card app-card">
+            <div class="card-header">
               <strong>Observações</strong>
             </div>
             <div class="card-body">

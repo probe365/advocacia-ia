@@ -1,6 +1,6 @@
 # app/services/ementas_client.py
 from pathlib import Path
-from typing import List, Dict, Any, Iterable, Optional
+from typing import Any, Dict, Iterable, List
 
 import faiss
 import numpy as np
@@ -26,22 +26,28 @@ class EmentasSearchClient:
 
     def _load_or_init(self) -> faiss.Index:
         self.store_path.mkdir(parents=True, exist_ok=True)
-        meta_fp = self.store_path / "meta.npy"
 
         if self.index_path.exists():
             index = faiss.read_index(str(self.index_path))
-            if meta_fp.exists():
-                # dtype=object para dicionários
-                self.meta = {int(k): v.item() for k, v in np.load(meta_fp, allow_pickle=True)}
-            return index
-        else:
-            # Começa vazio (usar índice flat L2; troque p/ IVFFlat/HNSW depois)
-            dim = self.model.get_sentence_embedding_dimension()
-            index = faiss.IndexFlatIP(dim)
-            self._persist(index)
+            self._load_meta()
             return index
 
-    def _persist(self, index: faiss.Index | None = None):
+        # Começa vazio (usar índice flat L2; troque p/ IVFFlat/HNSW depois)
+        dim = self.model.get_sentence_embedding_dimension()
+        index = faiss.IndexFlatIP(dim)
+        self._persist(index)
+        return index
+
+    def _load_meta(self) -> None:
+        meta_fp = self.store_path / "meta.npy"
+        if not meta_fp.exists():
+            self.meta = {}
+            return
+
+        # dtype=object para dicionários
+        self.meta = {int(k): v.item() for k, v in np.load(meta_fp, allow_pickle=True)}
+
+    def _persist(self, index: faiss.Index | None = None) -> None:
         target_index = index or self.index
         faiss.write_index(target_index, str(self.index_path))
         # salva meta como pares (idx -> dict)

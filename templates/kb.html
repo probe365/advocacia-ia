@@ -1,15 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}Base de Conhecimento{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0"><i class="bi bi-book"></i> Base de Conhecimento Global</h2>
-  <a href="/clientes/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-book"></i> Base de Conhecimento Global</h1>
+    <p class="page-subtitle">Centralize documentos e acelere pesquisas semânticas.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/clientes/" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left"></i> Voltar</a>
+  </div>
 </div>
 
 <!-- Estatísticas -->
 <div class="row mb-3">
   <div class="col-md-3">
-    <div class="card text-center">
+    <div class="card app-card text-center">
       <div class="card-body py-2">
         <h4 class="mb-0 text-primary">{{ kb_stats.total }}</h4>
         <small class="text-muted">Total Documentos</small>
@@ -17,7 +22,7 @@
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card text-center">
+    <div class="card app-card text-center">
       <div class="card-body py-2">
         <h4 class="mb-0 text-success">{{ kb_stats.pdf }}</h4>
         <small class="text-muted"><i class="bi bi-file-pdf"></i> PDFs</small>
@@ -25,7 +30,7 @@
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card text-center">
+    <div class="card app-card text-center">
       <div class="card-body py-2">
         <h4 class="mb-0 text-info">{{ kb_stats.image }}</h4>
         <small class="text-muted"><i class="bi bi-image"></i> Imagens</small>
@@ -33,7 +38,7 @@
     </div>
   </div>
   <div class="col-md-3">
-    <div class="card text-center">
+    <div class="card app-card text-center">
       <div class="card-body py-2">
         <h4 class="mb-0 text-warning">{{ kb_stats.audio + kb_stats.video }}</h4>
         <small class="text-muted"><i class="bi bi-play-circle"></i> Mídia</small>
@@ -46,8 +51,8 @@
   <!-- Coluna Esquerda: Upload + Busca -->
   <div class="col-md-4">
     <!-- Upload -->
-    <div class="card mb-3">
-      <div class="card-header bg-primary text-white">
+    <div class="card app-card mb-3">
+      <div class="card-header">
         <i class="bi bi-cloud-upload"></i> Adicionar Documento
       </div>
       <div class="card-body">
@@ -73,8 +78,8 @@
     </div>
 
     <!-- Busca Semântica -->
-    <div class="card">
-      <div class="card-header bg-success text-white">
+    <div class="card app-card">
+      <div class="card-header">
         <i class="bi bi-search"></i> Busca Semântica
       </div>
       <div class="card-body">
@@ -97,8 +102,8 @@
 
   <!-- Coluna Direita: Lista de Arquivos -->
   <div class="col-md-8">
-    <div class="card">
-      <div class="card-header bg-light">
+    <div class="card app-card">
+      <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
           <h5 class="mb-0"><i class="bi bi-files"></i> Documentos Cadastrados</h5>
           <div class="btn-group btn-group-sm" role="group">
@@ -159,9 +164,9 @@
           <div class="modal fade" id="debugModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
-                <div class="modal-header bg-info text-white">
+                <div class="modal-header">
                   <h5 class="modal-title"><i class="bi bi-bug"></i> Debug de Indexação</h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">${html}</div>
                 <div class="modal-footer">

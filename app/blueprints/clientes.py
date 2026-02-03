@@ -40,9 +40,16 @@ def ui_get_form():
 @login_required
 def ui_create_cliente():
     form_data = request.form.to_dict()
-    service.create_cliente(form_data)
-    clientes = service.list_clientes()
-    return render_template('_cards_cliente.html', clientes=clientes)
+    print("[DEBUG] Received form data for new client:", form_data)
+    try:
+        new_id = service.create_cliente(form_data)
+        print(f"[DEBUG] New client created with id: {new_id}")
+        clientes = service.list_clientes()
+        return render_template('_cards_cliente.html', clientes=clientes)
+    except Exception as e:
+        print(f"[ERROR] Failed to create client: {e}")
+        # Optionally, return an error message to the UI
+        return f"Erro ao criar cliente: {e}", 400
 
 @clientes_bp.route('/ui/<id_cliente>/editform', methods=['GET'])
 @login_required

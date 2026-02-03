@@ -1,0 +1,12 @@
+{# templates/processos/_participants_error.html #}
+{% set panel_id = panel_id or 'pp-panel' %}
+<div class="alert alert-danger" role="alert">
+  <div class="fw-semibold">Não foi possível carregar os participantes.</div>
+  <div class="small">{{ message }}</div>
+  <div class="mt-2 small text-muted">Tente atualizar a página ou entre em contato com o suporte.</div>
+</div>
+<button class="btn btn-sm btn-outline-secondary mt-2"
+        hx-get="/processos/{{ process_id }}/participants?partial_id={{ panel_id }}"
+        hx-target="#{{ panel_id }}" hx-swap="innerHTML">
+  Tentar novamente
+</button>

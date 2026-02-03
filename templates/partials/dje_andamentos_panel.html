@@ -1,0 +1,205 @@
+{% if not processo %}
+  <div class="alert alert-warning">Processo não encontrado.</div>
+{% else %}
+
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-start mb-2 gap-2 flex-wrap">
+    <div>
+      <h6 class="mb-0 app-section-title">Andamentos DJE (PJe)</h6>
+      <small class="text-muted">Atualizações e movimentos do processo obtidos via Comunica PJe.</small>
+    </div>
+
+    <!-- Botão de sincronização -->
+    <div class="d-flex gap-2">
+      <form 
+        hx-post="/dje/ui/processos/{{ processo.id_processo }}/andamentos/sync"
+        hx-target="#dje-andamentos-panel"
+        hx-swap="innerHTML"
+        class="d-flex gap-2 align-items-end"
+      >
+        <div>
+          <label class="form-label small text-muted">Início</label>
+          <input type="date" name="data_inicio" class="form-control form-control-sm" required>
+        </div>
+
+        <div>
+          <label class="form-label small text-muted">Fim</label>
+          <input type="date" name="data_fim" class="form-control form-control-sm" required>
+        </div>
+
+        <button class="btn btn-success btn-sm mt-4">
+          Sincronizar DJE (PJe)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mensagens -->
+  {% if message %}
+    <div class="alert alert-{{ message_status or 'info' }} py-2">{{ message }}</div>
+  {% endif %}
+
+  {% if not processo.numero_cnj %}
+    <div class="alert alert-warning">
+      Este processo não possui número CNJ cadastrado.  
+      A sincronização via PJe continuará funcionando normalmente.
+    </div>
+  {% endif %}
+
+  <!-- Filtros -->
+  {% set tribunais = (andamentos | map(attribute='tribunal') | select | list) if andamentos else [] %}
+  {% set tribunais_unicos = tribunais | unique | list %}
+
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-md-3">
+      <label class="form-label small text-muted">Tipo de comunicação</label>
+      <select class="form-select form-select-sm" id="andamentos-tipo">
+        <option value="">Todas</option>
+        <option value="citacao">Citação</option>
+        <option value="intimacao">Intimação</option>
+        <option value="notificacao">Notificação</option>
+        <option value="outro">Outros</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label small text-muted">Tribunal</label>
+      <select class="form-select form-select-sm" id="andamentos-tribunal">
+        <option value="">Todos</option>
+        {% for t in tribunais_unicos %}
+          <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label small text-muted">Período (filtro local)</label>
+      <div class="d-flex gap-2">
+        <input type="date" class="form-control form-control-sm" id="andamentos-data-inicio">
+        <input type="date" class="form-control form-control-sm" id="andamentos-data-fim">
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <button class="btn btn-outline-secondary btn-sm w-100" id="andamentos-clear-filters">
+        Limpar filtros
+      </button>
+    </div>
+  </div>
+
+  <!-- Spinner HTMX -->
+  <div id="spinner" class="d-none text-center my-3">
+    <div class="spinner-border text-primary"></div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-responsive">
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Movimento</th>
+          <th>Tribunal</th>
+          <th>Órgão</th>
+          <th>Grau</th>
+          <th>Origem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if andamentos and andamentos|length > 0 %}
+          {% for item in andamentos %}
+            {% set row_date = item.movimento_data or item.created_at %}
+            <tr 
+              data-tipo="{{ item.tipo_comunicacao or '' }}"
+              data-tribunal="{{ item.tribunal or '' }}"
+              data-data="{{ (row_date.strftime('%Y-%m-%d') if row_date else '') }}"
+            >
+              <td>{{ row_date.strftime('%d/%m/%Y') if row_date else '—' }}</td>
+              <td>{{ item.descricao or '—' }}</td>
+              <td>{{ item.tribunal or '—' }}</td>
+              <td>{{ item.orgao or '—' }}</td>
+              <td>{{ item.grau or '—' }}</td>
+              <td>
+                {% if item.origem == "consulta_dje" %}
+                  <span class="badge bg-info">PJe</span>
+                {% elif item.origem == "email_push" %}
+                  <span class="badge bg-warning">Email</span>
+                {% elif item.origem == "djecnj" %}
+                  <span class="badge bg-primary">CNJ</span>
+                {% else %}
+                  <span class="badge bg-secondary">Outro</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-muted">Nenhum andamento encontrado.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+  // Spinner HTMX
+  document.body.addEventListener("htmx:request", () => {
+    document.getElementById("spinner").classList.remove("d-none")
+  })
+  document.body.addEventListener("htmx:afterSwap", () => {
+    document.getElementById("spinner").classList.add("d-none")
+  })
+
+  // Filtros locais
+  ;(function(){
+    const tipoEl = document.getElementById('andamentos-tipo');
+    const tribunalEl = document.getElementById('andamentos-tribunal');
+    const inicioEl = document.getElementById('andamentos-data-inicio');
+    const fimEl = document.getElementById('andamentos-data-fim');
+    const clearBtn = document.getElementById('andamentos-clear-filters');
+    const rows = Array.from(document.querySelectorAll('#dje-andamentos-panel tbody tr'));
+
+    function normalizeDate(value){
+      if(!value) return null;
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function applyFilter(){
+      const tipo = tipoEl.value || '';
+      const tribunal = tribunalEl.value || '';
+      const inicio = normalizeDate(inicioEl.value);
+      const fim = normalizeDate(fimEl.value);
+
+      rows.forEach(row => {
+        const rowTipo = row.getAttribute('data-tipo') || '';
+        const rowTribunal = row.getAttribute('data-tribunal') || '';
+        const rowDate = normalizeDate(row.getAttribute('data-data'));
+
+        let visible = true;
+
+        if(tipo && rowTipo !== tipo) visible = false;
+        if(tribunal && rowTribunal !== tribunal) visible = false;
+        if(inicio && (!rowDate || rowDate < inicio)) visible = false;
+        if(fim && (!rowDate || rowDate > fim)) visible = false;
+
+        row.style.display = visible ? '' : 'none';
+      });
+    }
+
+    [tipoEl, tribunalEl, inicioEl, fimEl].forEach(el => {
+      el.addEventListener('change', applyFilter);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      tipoEl.value = '';
+      tribunalEl.value = '';
+      inicioEl.value = '';
+      fimEl.value = '';
+      applyFilter();
+    });
+  })();
+  </script>
+
+{% endif %}

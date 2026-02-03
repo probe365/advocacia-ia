@@ -2,9 +2,14 @@
 {% block title %}Pesquisa de Ementas{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="mb-0">Pesquisa de Ementas por Similaridade</h2>
-  <a href="/clientes/" class="btn btn-sm btn-outline-secondary">Voltar</a>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Pesquisa de Ementas</h1>
+    <p class="page-subtitle">Encontre jurisprudência relevante com busca por similaridade.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/clientes/" class="btn btn-outline-light btn-sm">Voltar</a>
+  </div>
 </div>
 
 {% set active_case_id = current_case_id or '' %}
@@ -15,7 +20,7 @@
   <div class="col-lg-4">
 
     <!-- Gerenciar Base -->
-    <div class="card mb-3">
+    <div class="card app-card mb-3">
       <div class="card-header">Gerenciar Base de Ementas</div>
       <div class="card-body">
         <form hx-post="/ementas/ui/upload" hx-target="#ementa-files" hx-swap="innerHTML" enctype="multipart/form-data">
@@ -27,7 +32,7 @@
     </div>
 
     <!-- Buscar Ementas (HTMX “clássico”) -->
-    <div class="card mb-3">
+    <div class="card app-card mb-3">
       <div class="card-header">Buscar Ementas</div>
       <div class="card-body">
         <form id="form-busca-ementas" hx-post="/ementas/ui/buscar" hx-target="#resultados-busca" hx-swap="innerHTML">
@@ -58,7 +63,7 @@
 
     <!-- Pesquisa Avançada (FAISS) -->
 <!-- ====== INÍCIO: Pesquisa Avançada (FAISS / Similaridade) ====== -->
-<div class="card mb-3 bg-dark text-light border-secondary">
+<div class="card app-card mb-3">
   <div class="card-header">
     <strong>Pesquisa Avançada (FAISS / Similaridade)</strong>
   </div>

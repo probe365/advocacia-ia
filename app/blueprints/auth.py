@@ -24,17 +24,21 @@ def _manager(global_admin: bool = False):
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user_data = _manager(global_admin=True).get_usuario_by_username(username)
-        if user_data and check_password_hash(user_data['password_hash'], password):
-            user = User(user_data)
-            login_user(user)
-            tenant = user_data.get('tenant_id') or current_app.config.get('DEFAULT_TENANT_ID')
-            session['tenant_id'] = tenant
-            g.tenant_id = tenant
-            return redirect(url_for('clientes.ui_mostrar_clientes'))
-        flash('Nome de usuário ou senha inválidos.', 'danger')
+        try:
+            username = request.form.get('username')
+            password = request.form.get('password')
+            user_data = _manager(global_admin=True).get_usuario_by_username(username)
+            if user_data and check_password_hash(user_data['password_hash'], password):
+                user = User(user_data)
+                login_user(user)
+                tenant = user_data.get('tenant_id') or current_app.config.get('DEFAULT_TENANT_ID')
+                session['tenant_id'] = tenant
+                g.tenant_id = tenant
+                return redirect(url_for('clientes.ui_mostrar_clientes'))
+            flash('Nome de usuário ou senha inválidos.', 'danger')
+        except Exception as exc:
+            current_app.logger.error("Erro no login", exc_info=exc)
+            flash('Erro interno ao autenticar. Verifique o terminal.', 'danger')
     return render_template('login.html')
 
 @bp.route('/registro', methods=['GET', 'POST'])

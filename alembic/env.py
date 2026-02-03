@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import os
 from dotenv import load_dotenv
 
@@ -5,6 +8,10 @@ load_dotenv()
 from logging.config import fileConfig
 from sqlalchemy import create_engine, pool
 from alembic import context
+
+from app.extensions import db
+from models import *
+target_metadata = db.metadata
 
 # Interpret the config file for Python logging.
 config = context.config
@@ -21,14 +28,14 @@ def get_url():
 
 def run_migrations_offline():
     url = get_url()
-    context.configure(url=url, literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(url=url, literal_binds=True, dialect_opts={"paramstyle": "named"}, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
 
 def run_migrations_online():
     connectable = create_engine(get_url(), poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(connection=connection)
+        context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 

@@ -1,0 +1,2 @@
+tenant_id,processo,tipo_parte,autor_nome,autor_cpf_cnpj,autor_email,autor_endereco,reu_nome,reu_cpf_cnpj,reu_email,reu_endereco,missing_autor,missing_reu
+public,caso_2e299245,autor,João Carlos Lima,456.321.532-44,jlima@gmail.com,"Rua Barbosa da Cunha, 439",Banco BMG SA,23.876.908/9000-13,bmg@gmail.com.br,"Rua Barbosa da Cunha, 439",False,False

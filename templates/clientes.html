@@ -3,19 +3,26 @@
 {% block title %}Lista de Clientes - Advocacia e IA{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-  <h1 class="h2">Painel de Clientes</h1>
-  <div class="btn-toolbar mb-2 mb-md-0">
-  <button type="button" class="btn btn-sm btn-outline-success" 
-      data-bs-toggle="modal" data-bs-target="#clienteModal"
-      hx-get="/clientes/ui/form" hx-target="#clienteModalBody">
-      + Adicionar Novo Cliente
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Painel de Clientes</h1>
+    <p class="page-subtitle">Controle clientes, casos e próximos passos com visão clara.</p>
+  </div>
+  <div class="page-actions">
+    <button type="button" class="btn btn-primary btn-sm"
+        data-bs-toggle="modal" data-bs-target="#clienteModal"
+        hx-get="/clientes/ui/form" hx-target="#clienteModalBody">
+        + Adicionar Novo Cliente
     </button>
   </div>
 </div>
 
-<div class="row" id="lista-clientes">
-  {% include '_cards_cliente.html' %}
+<div class="card app-card">
+  <div class="card-body">
+    <div class="row g-3" id="lista-clientes">
+      {% include '_cards_cliente.html' %}
+    </div>
+  </div>
 </div>
 
 

@@ -1,0 +1,27 @@
+EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA {juizo_vara} VARA {juizo_especialidade} DA COMARCA DE {juizo_comarca} - {juizo_uf}
+
+Autos nº: {numero_processo}
+
+{autor_qualificacao_completa}, por seu advogado infra-assinado, vem, respeitosamente, propor a presente
+
+{nome_completo_acao}
+
+em face de {reu_qualificacao_completa}, pelos fatos e fundamentos a seguir expostos:
+
+I - DOS FATOS
+{narrativa_dos_fatos}
+
+II - DO DIREITO
+{fundamentacao_juridica_geral}
+
+III - DOS PEDIDOS
+{lista_completa_dos_pedidos_formatada}
+
+Nesses Termos,
+Pede Deferimento.
+
+{cidade_peticao}, {data_peticao}.
+
+_________________________________________
+{nome_advogado_assinatura}
+OAB/{uf_oab} nº {numero_oab}

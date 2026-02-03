@@ -37,13 +37,13 @@
   {% for processo in processos %}
   <div class="list-group-item" data-tipo-parte="{{ processo.tipo_parte or '' }}" data-search-text="{{ processo.nome_caso }} {{ processo.case_code }} {{ processo.tipo_parte or '' }}">
     <div class="d-flex w-100 justify-content-between align-items-start">
-      <a href="/processos/painel/{{ processo.id_processo }}" class="flex-grow-1 text-decoration-none text-dark">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="flex-grow-1 text-decoration-none">
         <div>
           <h6 class="mb-1">
             {{ processo.nome_caso }} 
             <small class="text-muted">({{ processo.case_code or '...' }})</small>
             {% if processo.tipo_parte %}
-              <span class="badge bg-info text-dark ms-2">{{ processo.tipo_parte }}</span>
+              <span class="app-badge ms-2">{{ processo.tipo_parte }}</span>
             {% else %}
               <span class="badge bg-secondary text-white ms-2">sem papel</span>
             {% endif %}

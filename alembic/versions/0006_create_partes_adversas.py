@@ -41,8 +41,8 @@ def upgrade():
         sa.Column('id', sa.Integer(), nullable=False),
 
         # Relacionamentos
-        sa.Column('id_processo', sa.Integer(), nullable=False),
-        sa.Column('tenant_id', sa.String(length=50), nullable=False),
+        sa.Column('id_processo', sa.String(length=64), nullable=False),
+        sa.Column('tenant_id', sa.String(length=64), nullable=False),
 
         # Tipo de parte
         sa.Column('tipo_parte', sa.String(length=20), nullable=False),

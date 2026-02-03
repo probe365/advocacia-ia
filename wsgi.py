@@ -4,3 +4,6 @@ load_dotenv()
 from app import create_app
 application = create_app()
 app = application  # compatibility
+
+if __name__ == "__main__":
+    app.run(debug=True)

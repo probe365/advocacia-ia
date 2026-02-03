@@ -1,0 +1,204 @@
+{% if not processo %}
+  <div class="alert alert-warning">Processo não encontrado.</div>
+{% else %}
+
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-start mb-2 gap-2 flex-wrap">
+    <div>
+      <h6 class="mb-0 app-section-title">Push DJE</h6>
+      <small class="text-muted">Citações, intimações, inteiro teor e status de ciência (via CNJ e TJSP).</small>
+    </div>
+
+    <div class="d-flex gap-2">
+
+      <!-- Botão Ativar Push -->
+      {% if subscription and subscription.enabled %}
+        <button class="btn btn-secondary btn-sm" disabled>
+          Push Ativo
+        </button>
+      {% else %}
+        <button class="btn btn-outline-primary btn-sm"
+                hx-post="/dje/ui/processos/{{ processo.id_processo }}/push/subscribe"
+                hx-target="#dje-push-panel"
+                hx-swap="innerHTML">
+          Ativar Push
+        </button>
+      {% endif %}
+
+      <!-- Botão Sincronizar -->
+      <button class="btn btn-outline-secondary btn-sm"
+              hx-post="/dje/ui/processos/{{ processo.id_processo }}/push/sync"
+              hx-target="#dje-push-panel"
+              hx-swap="innerHTML">
+        Sincronizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensagens -->
+  {% if message %}
+    <div class="alert alert-{{ message_status or 'info' }} py-2">{{ message }}</div>
+  {% endif %}
+
+  {% if not processo.numero_cnj %}
+    <div class="alert alert-warning">Este processo não possui número CNJ cadastrado.</div>
+  {% endif %}
+
+  <!-- Painel de status -->
+  <div class="panel mb-3">
+    <div class="row g-2">
+      <div class="col-md-4">
+        <small class="text-muted d-block">CNJ</small>
+        <strong>{{ processo.numero_cnj or '—' }}</strong>
+      </div>
+      <div class="col-md-4">
+        <small class="text-muted d-block">Status da assinatura</small>
+        <strong>
+          {{ subscription.status or (subscription.enabled and 'Ativo') or 'Inativo' if subscription else 'Não configurado' }}
+        </strong>
+      </div>
+      <div class="col-md-4">
+        <small class="text-muted d-block">Última sincronização</small>
+        <strong>
+          {% if subscription.last_sync_at %}
+            {{ subscription.last_sync_at.strftime('%d/%m/%Y %H:%M') }}
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spinner HTMX -->
+  <div id="spinner" class="d-none text-center my-3">
+    <div class="spinner-border text-primary"></div>
+  </div>
+
+  <!-- Tabela de eventos push -->
+  <div class="table-responsive">
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Tipo</th>
+          <th>Título</th>
+          <th>Prazo final</th>
+          <th>Status de ciência</th>
+          <th>Inteiro teor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events and events|length > 0 %}
+          {% for event in events %}
+            {% set payload = event.payload or {} %}
+            {% set doc_url = payload.get('documento_url')
+                or payload.get('url_documento')
+                or payload.get('inteiro_teor_url')
+                or payload.get('url')
+                or payload.get('linkDocumento')
+                or (payload.get('documento') and payload.get('documento').get('url'))
+            %}
+            {% set comunicacao = payload.get('numeroComunicacao')
+                or payload.get('idComunicacao')
+                or payload.get('numero_comunicacao')
+                or payload.get('id_comunicacao')
+                or event.external_id
+            %}
+            <tr>
+              <td>
+                {% set dt = event.event_date or event.created_at %}
+                {{ dt.strftime('%d/%m/%Y %H:%M') if dt else '—' }}
+              </td>
+              <td>{{ event.event_type or 'evento' }}</td>
+              <td>{{ event.event_title or '—' }}</td>
+              <td>
+                {% if event.prazo_final %}
+                  {{ event.prazo_final.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>{{ event.status_ciencia or '—' }}</td>
+              <td>
+                {% if doc_url %}
+                  <a class="btn btn-sm btn-outline-info" href="{{ doc_url }}" target="_blank">Abrir</a>
+                {% elif comunicacao %}
+                  <a class="btn btn-sm btn-outline-info"
+                     href="/dje/ui/processos/{{ processo.id_processo }}/push/inteiro-teor/{{ event.id }}"
+                     target="_blank">
+                    Abrir
+                  </a>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-muted">Nenhum evento recebido ainda.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- E-mails do TJSP -->
+  <h6 class="app-section-title">E-mails do TJSP</h6>
+  <small class="text-muted">Mensagens recebidas no e-mail cadastrado do TJSP e vinculadas ao processo.</small>
+
+  <div class="table-responsive mt-2">
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Recebido em</th>
+          <th>Movimento</th>
+          <th>Assunto</th>
+          <th>Origem</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if emails and emails|length > 0 %}
+          {% for mail in emails %}
+            <tr>
+              <td>
+                {% if mail.created_at %}
+                  {{ mail.created_at.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if mail.movement_at %}
+                  {{ mail.movement_at.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>{{ mail.subject or '—' }}</td>
+              <td>{{ mail.source or '—' }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="4" class="text-muted">Nenhum e-mail associado ao processo.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Spinner script -->
+  <script>
+    document.body.addEventListener("htmx:request", () => {
+      document.getElementById("spinner").classList.remove("d-none")
+    })
+    document.body.addEventListener("htmx:afterSwap", () => {
+      document.getElementById("spinner").classList.add("d-none")
+    })
+  </script>
+
+{% endif %}

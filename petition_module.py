@@ -6,8 +6,7 @@ import os # Importante para ler o .env
 from typing import Dict, Any, Optional, Iterable
 from datetime import datetime
 
-# SUBSTITUÍDO: OpenAI por Google GenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
 # Mantenha suas importações de helpers
@@ -71,6 +70,17 @@ def _sanitize_narrativa(
 
 
 class PetitionGenerator:
+    def render_template_from_file(self, template_filename: str, context: dict) -> str:
+        """
+        Render a petition template from a file in petition_templates/ with the provided context.
+        :param template_filename: Name of the template file (e.g., 'peticao_inicial.txt')
+        :param context: Dictionary with keys matching placeholders in the template
+        :return: Rendered string
+        """
+        template_path = os.path.join("petition_templates", template_filename)
+        with open(template_path, "r", encoding="utf-8") as f:
+            template = f.read()
+        return template.format(**context)
     # Template da Petição como atributo de classe
     PETICAO_INICIAL_TEMPLATE = """
 EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA {juizo_vara} VARA {juizo_especialidade} DA COMARCA DE {juizo_comarca} - {juizo_uf}
@@ -119,7 +129,7 @@ OAB/{uf_oab} nº {numero_oab}
 
     DEFAULT_DATA_PETICAO = format_date_pt()  # Data padrão formatada em português
 
-    def __init__(self, llm: ChatGoogleGenerativeAI): # Mudado para aceitar Gemini
+    def __init__(self, llm: ChatOpenAI): 
         self.llm = llm
         self._initialize_peticao_prompts_and_chains()
 

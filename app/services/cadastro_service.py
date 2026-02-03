@@ -1,5 +1,7 @@
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from flask import g
+
 from cadastro_manager import CadastroManager
 
 class CadastroService:
@@ -18,6 +20,12 @@ class CadastroService:
     def get_cliente(self, id_cliente: str) -> Optional[Dict]:
         return self._get_manager().get_cliente_by_id(id_cliente)
 
+    def _merge_or_raise(self, fetch_fn, entity_id: str, dados: Dict, not_found_msg: str) -> Dict:
+        atual = fetch_fn(entity_id)
+        if not atual:
+            raise ValueError(not_found_msg)
+        return {**atual, **dados}
+
     def create_cliente(self, dados: Dict) -> Optional[str]:
         return self._get_manager().save_cliente(dados)
 
@@ -30,13 +38,12 @@ class CadastroService:
         - campos não enviados sejam preservados
         """
         mgr = self._get_manager()
-        atual = mgr.get_cliente_by_id(id_cliente)
-        if not atual:
-            raise ValueError(f"Cliente {id_cliente} não encontrado para este tenant")
-
-        # Faz merge dos dados novos em cima do registro atual
-        merged = {**atual, **dados}
-
+        merged = self._merge_or_raise(
+            mgr.get_cliente_by_id,
+            id_cliente,
+            dados,
+            f"Cliente {id_cliente} não encontrado para este tenant",
+        )
         return mgr.save_cliente(merged, id_cliente=id_cliente)
 
 
@@ -60,11 +67,12 @@ class CadastroService:
 
     def update_processo(self, id_processo: str, dados: Dict) -> Optional[str]:
         """Atualiza campos de um processo existente (inclui troca de advogado)."""
-        # Garantir que id do cliente permaneça
-        atual = self.get_processo(id_processo)
-        if not atual:
-            raise ValueError("Processo não encontrado")
-        merged = {**atual, **dados}
+        merged = self._merge_or_raise(
+            self.get_processo,
+            id_processo,
+            dados,
+            "Processo não encontrado",
+        )
         return self._get_manager().save_processo(merged, id_processo=id_processo)
 
     # Escritório (dados únicos)
@@ -72,7 +80,7 @@ class CadastroService:
         return self._get_manager().get_escritorio_info()
 
     def save_escritorio(self, dados: Dict) -> None:
-        self._get_manager().save_escritorio_info(dados)
+        self._get_manager().save_escritorio(dados)
 
     # Advogados
     def list_advogados(self) -> List[Dict]:

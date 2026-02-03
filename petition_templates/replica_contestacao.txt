@@ -1,0 +1,27 @@
+EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA {juizo_vara} VARA {juizo_especialidade} DA COMARCA DE {juizo_comarca} - {juizo_uf}
+
+Processo nº: {numero_processo}
+
+{autor_qualificacao_completa}, por seu advogado infra-assinado, vem, respeitosamente, apresentar
+
+RÉPLICA À CONTESTAÇÃO
+
+em face de {reu_qualificacao_completa}, pelos fatos e fundamentos a seguir expostos:
+
+I - SÍNTESE DA CONTESTAÇÃO
+{resumo_contestacao}
+
+II - IMPUGNAÇÃO AOS ARGUMENTOS
+{impugnacao_argumentos}
+
+III - DOS PEDIDOS FINAIS
+{pedidos_finais_replica}
+
+Nesses Termos,
+Pede Deferimento.
+
+{cidade_peticao}, {data_peticao}.
+
+_________________________________________
+{nome_advogado_assinatura}
+OAB/{uf_oab} nº {numero_oab}

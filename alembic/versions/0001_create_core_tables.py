@@ -26,7 +26,7 @@ def upgrade():
     # clientes table
     op.create_table(
         'clientes',
-        sa.Column('id_cliente', sa.Integer, primary_key=True),
+        sa.Column('id_cliente', sa.String(length=64), primary_key=True),
         sa.Column('tipo_pessoa', sa.String(length=20), nullable=True),
         sa.Column('nome_completo', sa.String(length=255), nullable=False),
         sa.Column('cpf_cnpj', sa.String(length=20), nullable=True),
@@ -63,14 +63,14 @@ def upgrade():
     # processos table
     op.create_table(
         'processos',
-        sa.Column('id_processo', sa.Integer, primary_key=True),
-        sa.Column('id_cliente', sa.Integer, nullable=False),
+        sa.Column('id_processo', sa.String(length=64), primary_key=True),
+        sa.Column('id_cliente', sa.String(length=64), nullable=False),
         sa.Column('nome_caso', sa.String(length=255), nullable=True),
         sa.Column('numero_cnj', sa.String(length=50), nullable=True),
         sa.Column('status', sa.String(length=50), nullable=True),
         sa.Column('data_inicio', sa.Date, nullable=True),
         sa.Column('advogado_oab', sa.String(length=50), nullable=False),
-        sa.Column('tenant_id', sa.String(length=50), nullable=False),
+        sa.Column('tenant_id', sa.String(length=64), nullable=False),
         sa.Column('tipo_parte', sa.String(length=50), nullable=True),
         sa.Column('local_tramite', sa.Text, nullable=True),
         sa.Column('comarca', sa.String(length=100), nullable=True),

@@ -1,0 +1,29 @@
+{# templates/petitions/_list_pills.html #}
+{% if not petitions %}
+  <div class="text-muted small">Nenhuma petição ainda. Use os botões acima para criar.</div>
+{% else %}
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    {% for p in petitions %}
+      {% set pid = p.id or p["id"] %}
+      {% set ptype = (p.petition_type or p["petition_type"] or "")|upper %}
+      {% set status = (p.status or p["status"] or "draft")|lower %}
+
+      <button type="button"
+              class="btn btn-sm btn-outline-light d-flex align-items-center gap-2"
+              data-pid="{{ pid }}"
+              onclick="document.body.dispatchEvent(new CustomEvent('openPetition', {detail:{id: this.dataset.pid}}));">
+        <span class="fw-semibold">{{ ptype }}</span>
+
+        <span class="badge
+          {% if status in ['final','finalizada'] %}
+            app-badge
+          {% else %}
+            bg-warning text-dark
+          {% endif %}
+        ">
+          {{ status|upper }}
+        </span>
+      </button>
+    {% endfor %}
+  </div>
+{% endif %}

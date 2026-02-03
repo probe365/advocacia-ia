@@ -1,0 +1,8 @@
+Prezado(a) Senhor(a) Juiz(a),
+
+Eu, {client_name}, venho por meio desta apresentar a petição referente ao processo número {process_number}.
+
+[Corpo do texto da petição]
+
+Atenciosamente,
+{lawyer_name}

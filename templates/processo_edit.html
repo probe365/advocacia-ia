@@ -4,16 +4,19 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
       {% if processo.id_processo %}
         Editar Processo: {{ processo.nome_caso }}
       {% else %}
         Novo Processo
       {% endif %}
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-secondary">
+      </h1>
+      <p class="page-subtitle">Atualize informações estratégicas e mantenha o processo íntegro.</p>
+    </div>
+    <div class="page-actions">
+      <a href="/processos/painel/{{ processo.id_processo }}" class="btn btn-sm btn-outline-light">
         <i class="bi bi-arrow-left"></i> Voltar
       </a>
     </div>
@@ -32,8 +35,8 @@
   <form method="POST" action="/processos/{{ processo.id_processo }}/salvar" class="needs-validation" novalidate>
     
     <!-- SEÇÃO 1: INFORMAÇÕES BÁSICAS -->
-    <div class="card mb-4">
-      <div class="card-header bg-primary text-white">
+    <div class="card app-card mb-4">
+      <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informações Básicas</h5>
       </div>
       <div class="card-body">
@@ -115,9 +118,45 @@
       </div>
     </div>
 
+
+
+    <!-- SEÇÃO: ATORES DO PROCESSO (process_participants) -->
+<div class="card app-card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0"><i class="bi bi-people"></i> Atores do Processo</h5>
+  </div>
+
+  <input type="hidden" name="primary_opponent_id" id="primary_opponent_id" value="{{ primary_participant.party_id if primary_participant else '' }}">
+  <input type="hidden" name="primary_opponent_role" id="primary_opponent_role" value="{{ (primary_participant.role if primary_participant else primary_opposite_role)|default('', true) }}">
+  <input type="hidden" name="primary_opponent_kind" id="primary_opponent_kind" value="{{ (primary_participant.party_kind if primary_participant else 'adverso')|default('adverso', true) }}">
+
+  {% if processo.id_processo %}
+  <div class="card-body"
+       hx-get="/processos/{{ processo.id_processo }}/participants?partial_id=pp-panel"
+       hx-trigger="load"
+       hx-target="#pp-panel"
+       hx-swap="innerHTML">
+       
+    <div id="pp-panel">
+      <div class="text-muted small">Carregando participantes…</div>
+    </div>
+
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="text-muted small">
+      Salve o processo para vincular participantes.
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+
+    <!-- FIM DA SEÇÃO: ATORES DO PROCESSO -->
+
     <!-- SEÇÃO 2: NOVOS CAMPOS (ITEM 1 - MIGRATION 0005) -->
-    <div class="card mb-4">
-      <div class="card-header bg-success text-white">
+    <div class="card app-card mb-4">
+      <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-folder-plus"></i> Dados Processuais Detalhados</h5>
       </div>
       <div class="card-body">
@@ -352,6 +391,60 @@
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
+  })
+})()
+</script>
+
+<script>
+(function () {
+  const idField = document.getElementById('primary_opponent_id')
+  const roleField = document.getElementById('primary_opponent_role')
+  const kindField = document.getElementById('primary_opponent_kind')
+
+  function setHiddenFromSelect(selectEl) {
+    if (!selectEl || !idField || !roleField || !kindField) {
+      return
+    }
+    const value = selectEl.value || ''
+    idField.value = value
+    if (value) {
+      roleField.value = selectEl.dataset.primaryRole || roleField.value || ''
+      kindField.value = selectEl.dataset.partyKind || 'adverso'
+    } else {
+      roleField.value = ''
+      kindField.value = 'adverso'
+    }
+  }
+
+  function syncPrimaryOpponent(panel) {
+    if (!panel || !idField || !roleField || !kindField) {
+      return
+    }
+    const marker = panel.querySelector('[data-primary-sync]')
+    if (marker) {
+      const data = marker.dataset || {}
+      idField.value = data.partyId || ''
+      roleField.value = data.role || ''
+      kindField.value = data.partyKind || 'adverso'
+    }
+    const selectEl = panel.querySelector('[data-primary-select]')
+    if (selectEl) {
+      setHiddenFromSelect(selectEl)
+    }
+  }
+
+  document.body.addEventListener('change', function (event) {
+    const selectEl = event.target && event.target.closest('[data-primary-select]')
+    if (selectEl) {
+      setHiddenFromSelect(selectEl)
+    }
+  })
+
+  document.body.addEventListener('htmx:afterSwap', function (event) {
+    const target = event && event.detail ? event.detail.target : null
+    if (target && target.id === 'pp-panel') {
+      syncPrimaryOpponent(target)
+    }
   })
 })()
 </script>

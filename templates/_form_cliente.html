@@ -42,6 +42,31 @@
     <label for="telefone" class="form-label">Telefone</label>
     <input type="text" class="form-control" name="telefone" value="{{ cliente.telefone if cliente else '' }}">
   </div>
+  <div class="mb-3">
+    <label for="nacionalidade" class="form-label">Nacionalidade</label>
+    <input type="text" class="form-control" name="nacionalidade" value="{{ cliente.nacionalidade if cliente else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="estado_civil" class="form-label">Estado Civil</label>
+    <input type="text" class="form-control" name="estado_civil" value="{{ cliente.estado_civil if cliente else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="profissao" class="form-label">Profissão</label>
+    <input type="text" class="form-control" name="profissao" value="{{ cliente.profissao if cliente else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="endereco_completo" class="form-label">Endereço Completo</label>
+    <input type="text" class="form-control" name="endereco_completo" value="{{ cliente.endereco_completo if cliente else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="rg_ie" class="form-label">RG - IE</label>
+    <input type="text" class="form-control" name="rg_ie" value="{{ cliente.rg_ie if cliente else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="observacoes" class="form-label">Observações</label>
+    <textarea class="form-control" name="observacoes">{{ cliente.observacoes if cliente else '' }}</textarea>
+  </div>
+
   <hr>
   <div class="d-flex justify-content-end">
     <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>

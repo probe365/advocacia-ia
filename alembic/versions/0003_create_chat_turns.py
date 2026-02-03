@@ -16,11 +16,11 @@ def upgrade():
     op.create_table(
         'chat_turns',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('id_processo', sa.Integer, nullable=False),
+        sa.Column('id_processo', sa.String(length=64), nullable=False),
         sa.Column('role', sa.String, nullable=False),
         sa.Column('content', sa.Text, nullable=False),
         sa.Column('created_at', sa.DateTime, server_default=sa.func.now(), nullable=False),
-        sa.Column('tenant_id', sa.String, nullable=True),
+        sa.Column('tenant_id', sa.String(length=64), nullable=True),
     )
     op.create_foreign_key('fk_chat_turns_processo', 'chat_turns', 'processos', ['id_processo'], ['id_processo'], ondelete='CASCADE')
     op.create_index('ix_chat_turns_processo', 'chat_turns', ['id_processo'])

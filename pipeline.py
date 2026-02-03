@@ -1,31 +1,22 @@
 # pipeline.py (Versão Refatorada com suporte a multi-tenant)
 
 # No topo do seu pipeline.py (raiz) ou app.py
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-import os
-from flask import g
-import openai
-from typing import List, Dict, Any, Optional, Tuple
-
-import logging
-from pathlib import Path
-import spacy
+import hashlib
 import json
-import hashlib
+import logging
 import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-from werkzeug.utils import secure_filename
-import hashlib
-# from app.services.openai_client import client as openai_client  # Removido: import não resolvido
-
-from cadastro_manager import CadastroManager
-
+import openai
+import spacy
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI  # Usando as importações mais novas
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from cadastro_manager import CadastroManager
 
 # Importando os outros módulos do seu projeto
 from ingestion_module import IngestionHandler
@@ -34,12 +25,11 @@ from petition_module import PetitionGenerator
 
 logger = logging.getLogger(__name__)
 
+CONTEXT_EMPTY_MESSAGE = "(Sem contexto disponível)"
+
 # Diretório base para os casos (por tenant)
 CASES_DIR = Path("./cases")
 
-AUDIO_EXTS = {".mp3", ".wav", ".m4a", ".ogg", ".aac"}
-VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".wmv"}
-IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
 
 class Pipeline:
     def __init__(
@@ -63,19 +53,12 @@ class Pipeline:
 
 
         # --- Diretórios por tenant ---
-        tenant_segment = str(tenant_id) if tenant_id else "default"
+        tenant_segment = self._tenant_segment(tenant_id)
 
-        # Diretório base do tenant
-        self.base_dir = CASES_DIR / tenant_segment
-        self.base_dir.mkdir(parents=True, exist_ok=True)
-
-        # Diretório específico do caso
-        self.case_dir = self.base_dir / case_id
-        self.case_dir.mkdir(parents=True, exist_ok=True)
-
-        # Diretório de cache do caso
-        self._cache_dir = self.case_dir / "cache"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        # Diretórios
+        self.base_dir = self._ensure_dir(CASES_DIR / tenant_segment)
+        self.case_dir = self._ensure_dir(self.base_dir / case_id)
+        self._cache_dir = self._ensure_dir(self.case_dir / "cache")
 
         logger.info(
             f"Orquestrador Pipeline para caso: {self.case_id} "
@@ -85,19 +68,9 @@ class Pipeline:
         # --- Modelos e componentes básicos ---
         self.nlp = spacy.load("pt_core_news_sm")
         self.embeddings = OpenAIEmbeddings()
-        # --- CONFIGURAÇÃO DO GOOGLE GEMINI ---
-        # Substituímos o ChatOpenAI(model="gpt-4o") pelo ChatGoogleGenerativeAI
-        gemini_model = (
-            os.getenv("GOOGLE_GEMINI_MODEL")
-            or os.getenv("GEMINI_MODEL")
-            or "gemini-flash-latest"
-        )
-        self.llm = ChatGoogleGenerativeAI(
-            model=gemini_model,
-            google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.2 # Menor temperatura para rascunhos jurídicos mais precisos
-        )
+        self.llm = ChatOpenAI(temperature=0.5, model="gpt-4o")  # Most advanced model for best FIRAC and Petition quality
         self.openai_client = openai_client or openai.OpenAI()
+
 
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
@@ -109,57 +82,38 @@ class Pipeline:
             "LOC": "localizacao",
             "ORG": "organizacao",
             "MONEY": "valor_monetario",
-            "DATE": "data"
+            "DATE": "data",
         }
 
         # --- Vector Store do CASO ---
-        self.case_store = Chroma(
-            persist_directory=str(self.case_dir / "vectorstore"),
-            embedding_function=self.embeddings
-        )
+        self.case_store = self._build_chroma_store(self.case_dir / "vectorstore")
         self.case_retriever = self.case_store.as_retriever(
             search_kwargs={"k": 7}
         )
 
         # --- KB Global (pode ser segmentada por tenant também, se desejar) ---
-        kb_store_dir = Path("./kb_store") / tenant_segment
-        kb_store_dir.mkdir(parents=True, exist_ok=True)
-        self.kb_store = Chroma(
-            persist_directory=str(kb_store_dir),
-            embedding_function=self.embeddings
-        )
+        kb_store_dir = self._ensure_dir(Path("./kb_store") / tenant_segment)
+        self.kb_store = self._build_chroma_store(kb_store_dir)
         self.kb_retriever = self.kb_store.as_retriever(
             search_kwargs={"k": 3}
         )
 
         # --- KB de Ementas (jurisprudência), também por tenant ---
-        ementas_store_dir = Path("./ementas_kb_store") / tenant_segment
-        ementas_store_dir.mkdir(parents=True, exist_ok=True)
-        self.ementas_kb_store = Chroma(
-            persist_directory=str(ementas_store_dir),
-            embedding_function=self.embeddings
-        )
+        ementas_store_dir = self._ensure_dir(Path("./ementas_kb_store") / tenant_segment)
+        self.ementas_kb_store = self._build_chroma_store(ementas_store_dir)
         self.ementas_kb_retriever = self.ementas_kb_store.as_retriever(
             search_kwargs={"k": 5}
         )
 
         # --- Prompts para sumarização (CaseAnalyzer) ---
-        map_prompt_template_pt = (
+        self.map_prompt_pt_for_summary = self._build_prompt(
             "Com base no seguinte trecho de documento, escreva um resumo conciso "
             'e informativo em PORTUGUÊS: "{text}" '
         )
-        self.map_prompt_pt_for_summary = PromptTemplate(
-            template=map_prompt_template_pt,
-            input_variables=["text"]
-        )
 
-        combine_prompt_template_pt = (
+        self.combine_prompt_pt_for_summary = self._build_prompt(
             "Sintetize os seguintes resumos em um resumo final coeso em PORTUGUÊS: "
             '"{text}" '
-        )
-        self.combine_prompt_pt_for_summary = PromptTemplate(
-            template=combine_prompt_template_pt,
-            input_variables=["text"]
         )
 
         # --- Módulos especializados ---
@@ -200,6 +154,93 @@ class Pipeline:
 
         logger.info("Orquestrador Pipeline inicializado com sucesso.")
 
+    def _tenant_segment(self, tenant_id: Optional[str]) -> str:
+        return str(tenant_id) if tenant_id else "default"
+
+    def _ensure_dir(self, path: Path) -> Path:
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _build_chroma_store(self, path: Path) -> Chroma:
+        return Chroma(
+            persist_directory=str(path),
+            embedding_function=self.embeddings,
+        )
+
+    def _build_prompt(self, template: str) -> PromptTemplate:
+        return PromptTemplate(template=template, input_variables=["text"])
+
+    def _resolve_document_type(self, filename: str) -> str:
+        ext = Path(filename).suffix.lower()
+        if ext == ".pdf":
+            return "pdf"
+        if ext in [".jpg", ".jpeg", ".png"]:
+            return "imagem"
+        if ext == ".txt":
+            return "texto"
+        if ext in [".mp3", ".wav"]:
+            return "audio"
+        if ext in [".mp4", ".mov"]:
+            return "video"
+        return "outro"
+
+    def _decode_text_bytes(self, content: bytes) -> str:
+        try:
+            return content.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                return content.decode("latin-1")
+            except Exception:
+                return ""
+
+    def _ingest_document(self, tipo_doc: str, nome_arquivo: str, conteudo_arquivo_bytes: bytes, ext: str) -> None:
+        if tipo_doc == "pdf":
+            self.ingestion_handler.add_pdf(
+                conteudo_arquivo_bytes, source_name=nome_arquivo
+            )
+            return
+
+        if tipo_doc == "imagem":
+            self.ingestion_handler.add_image(
+                conteudo_arquivo_bytes, source_name=nome_arquivo
+            )
+            return
+
+        if tipo_doc == "texto":
+            text = self._decode_text_bytes(conteudo_arquivo_bytes)
+            if not text.strip():
+                raise ValueError(
+                    "Arquivo .txt vazio ou não pôde ser decodificado."
+                )
+            self.ingestion_handler.add_text_direct(
+                text,
+                source_name=nome_arquivo,
+                metadata_override={"type": "text"},
+            )
+            return
+
+        if tipo_doc == "audio":
+            self.ingestion_handler.add_audio(
+                conteudo_arquivo_bytes,
+                source_name=nome_arquivo,
+                audio_format_suffix=ext,
+                openai_client=self.openai_client,
+            )
+            return
+
+        if tipo_doc == "video":
+            self.ingestion_handler.add_video(
+                conteudo_arquivo_bytes,
+                source_name=nome_arquivo,
+                video_format_suffix=ext,
+                openai_client=self.openai_client,
+            )
+            return
+
+        raise ValueError(
+            f"Extensão de arquivo não suportada para ingestão: {ext}"
+        )
+
     def _extract_text_from_llm_response(self, response: Any) -> str:
         """Normaliza respostas do LangChain em texto simples."""
         content = getattr(response, "content", "")
@@ -220,6 +261,25 @@ class Pipeline:
             return "\n".join(parts).strip()
 
         return str(content).strip()
+
+    def _invoke_llm_text(self, prompt: str, *, label: str) -> str:
+        try:
+            resp = self.llm.invoke(prompt)
+            return self._extract_text_from_llm_response(resp)
+        except Exception as exc:
+            logger.error(f"Erro ao gerar {label}: {exc}")
+            raise
+
+    def _join_context(self, parts: List[str]) -> str:
+        return "\n\n---\n\n".join([c for c in parts if c])
+
+    def _safe_retrieve(self, retriever, query: str, *, label: str) -> List[str]:
+        try:
+            docs = retriever.invoke(query)
+            return [d.page_content for d in docs]
+        except Exception as e:
+            logger.warning(f"[{label}] Falha ao recuperar docs: {e}")
+            return []
 
     # ======================================================================
     # MÉTODO DE CHAT (compatível com /processos/ui/<id_processo>/chat)
@@ -250,27 +310,16 @@ class Pipeline:
             context_parts: List[str] = []
 
             if scope in ("case", "both"):
-                try:
-                    case_docs = self.case_retriever.invoke(user_query)
-                    context_parts.append(
-                        "\n\n".join([d.page_content for d in case_docs])
-                    )
-                except Exception as e:
-                    logger.warning(f"[CHAT] Falha ao recuperar docs do caso: {e}")
+                case_parts = self._safe_retrieve(self.case_retriever, user_query, label="CHAT case")
+                if case_parts:
+                    context_parts.append("\n\n".join(case_parts))
 
             if scope in ("kb", "both"):
-                try:
-                    kb_docs = self.kb_retriever.invoke(user_query)
-                    context_parts.append(
-                        "\n\n".join([d.page_content for d in kb_docs])
-                    )
-                except Exception as e:
-                    logger.warning(f"[CHAT] Falha ao recuperar docs da KB: {e}")
+                kb_parts = self._safe_retrieve(self.kb_retriever, user_query, label="CHAT kb")
+                if kb_parts:
+                    context_parts.append("\n\n".join(kb_parts))
 
-            context_text = (
-                "\n\n---\n\n".join([c for c in context_parts if c])
-                or "(Sem contexto recuperado para esta pergunta.)"
-            )
+            context_text = self._join_context(context_parts) or "(Sem contexto recuperado para esta pergunta.)"
 
             # Monta prompt único para o LLM
             history_str = ""
@@ -312,25 +361,19 @@ class Pipeline:
             parts = []
 
             if self.case_retriever:
-                docs_case = self.case_retriever.invoke(
-                    focus or "analise geral do caso"
-                )
-                parts.append(
-                    "\n\n".join([d.page_content for d in docs_case[:k_case]])
-                )
+                docs_case = self._safe_retrieve(self.case_retriever, focus or "analise geral do caso", label="CONTEXT case")
+                if docs_case:
+                    parts.append("\n\n".join(docs_case[:k_case]))
 
             if self.kb_retriever:
-                docs_kb = self.kb_retriever.invoke(
-                    focus or "contexto jurídico geral"
-                )
-                parts.append(
-                    "\n\n".join([d.page_content for d in docs_kb[:k_kb]])
-                )
+                docs_kb = self._safe_retrieve(self.kb_retriever, focus or "contexto jurídico geral", label="CONTEXT kb")
+                if docs_kb:
+                    parts.append("\n\n".join(docs_kb[:k_kb]))
 
-            context = "\n\n---\n\n".join([p for p in parts if p])
+            context = self._join_context(parts)
 
             if not context.strip():
-                return "(Sem contexto disponível)"
+                return CONTEXT_EMPTY_MESSAGE
 
             # Limite defensivo de tamanho
             return context[:12000]
@@ -345,7 +388,7 @@ class Pipeline:
         Usado em /processos/ui/<id_processo>/analise/riscos
         """
         context = self._collect_context(focus)
-        if context.startswith("(Sem contexto"):
+        if context == CONTEXT_EMPTY_MESSAGE:
             return "Nenhum documento disponível para identificar riscos. Faça upload de arquivos primeiro."
 
         prompt = (
@@ -358,8 +401,7 @@ class Pipeline:
             f"Contexto:\n{context}\n\nRiscos:"
         )
         try:
-            resp = self.llm.invoke(prompt)
-            return self._extract_text_from_llm_response(resp)
+            return self._invoke_llm_text(prompt, label="riscos")
         except Exception as e:
             logger.error(f"Erro ao gerar riscos: {e}")
             return f"Erro ao gerar riscos: {e}"
@@ -370,7 +412,7 @@ class Pipeline:
         Usado em /processos/ui/<id_processo>/analise/proximos_passos
         """
         context = self._collect_context(focus)
-        if context.startswith("(Sem contexto"):
+        if context == CONTEXT_EMPTY_MESSAGE:
             return "Sem base documental suficiente para sugerir próximos passos."
 
         prompt = (
@@ -383,8 +425,7 @@ class Pipeline:
             f"Contexto:\n{context}\n\nPlano Estratégico:"
         )
         try:
-            resp = self.llm.invoke(prompt)
-            return self._extract_text_from_llm_response(resp)
+            return self._invoke_llm_text(prompt, label="próximos passos")
         except Exception as e:
             logger.error(f"Erro ao gerar próximos passos: {e}")
             return f"Erro ao gerar próximos passos: {e}"
@@ -393,9 +434,7 @@ class Pipeline:
     # CACHE DE RESUMO DO CASO
     # ======================================================================
     def _case_cache_dir(self) -> Path:
-        d = self.case_dir / "cache"
-        d.mkdir(parents=True, exist_ok=True)
-        return d
+        return self._ensure_dir(self.case_dir / "cache")
 
     def compute_case_digest(self) -> str:
         """
@@ -423,23 +462,32 @@ class Pipeline:
         ).hexdigest()[:10]
         return self._case_cache_dir() / f"summary_{digest}_{fh}.txt"
 
+    def _read_text_safe(self, path: Path) -> Optional[str]:
+        try:
+            if path.exists():
+                return path.read_text(encoding="utf-8")
+        except Exception:
+            return None
+        return None
+
+    def _write_text_safe(self, path: Path, content: str) -> bool:
+        try:
+            path.write_text(content, encoding="utf-8")
+            return True
+        except Exception:
+            return False
+
     def get_cached_summary(self, focus: str) -> Optional[str]:
         digest = self.compute_case_digest()
         path = self._summary_cache_filename(focus, digest)
-        if path.exists():
-            try:
-                return path.read_text(encoding="utf-8")
-            except Exception:
-                return None
-        return None
+        cached = self._read_text_safe(path)
+        return cached.strip() if cached else None
 
     def cache_summary(self, focus: str, content: str) -> None:
         digest = self.compute_case_digest()
         path = self._summary_cache_filename(focus, digest)
-        try:
-            path.write_text(content, encoding="utf-8")
-        except Exception as e:
-            logger.warning(f"Não conseguiu gravar cache de resumo: {e}")
+        if not self._write_text_safe(path, (content or "").strip()):
+            logger.warning("Não conseguiu gravar cache de resumo")
 
     def summarize_with_cache(self, query_for_relevance: str) -> Tuple[str, bool]:
         """
@@ -548,7 +596,7 @@ class Pipeline:
         base = self._case_cache_dir() / f"firac_{digest}_{fh}"
         return base.with_suffix(".json"), base.with_suffix(".txt")
 
-    def _cache_firac(self, focus: str, data, raw: str):
+    def _cache_firac(self, focus: str, data: Optional[Dict[str, Any]], raw: str) -> None:
         json_path, raw_path = self._firac_cache_paths(focus)
         try:
             if data:
@@ -557,11 +605,23 @@ class Pipeline:
                     encoding="utf-8",
                 )
             if raw:
-                raw_path.write_text(raw, encoding="utf-8")
+                raw_path.write_text(raw.strip(), encoding="utf-8")
             if data:
                 self._validar_firac_data(data, origem="FIRAC - CACHE")
         except Exception as e:
             logger.warning(f"Não conseguiu cache FIRAC: {e}")
+
+    def _load_cached_firac(self, json_path: Path, raw_path: Path) -> Tuple[Optional[Dict[str, Any]], str]:
+        data = None
+        raw = ""
+        if json_path.exists():
+            try:
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+            except Exception:
+                data = None
+        if raw_path.exists():
+            raw = (self._read_text_safe(raw_path) or "").strip()
+        return data, raw
 
     def _parse_raw_firac_to_json(self, raw: str) -> Optional[Dict[str, str]]:
         """
@@ -603,7 +663,7 @@ class Pipeline:
             re.DOTALL | re.IGNORECASE,
         )
 
-        result = {
+        result: Dict[str, str] = {
             "facts": facts_match.group(1).strip() if facts_match else "",
             "issue": issue_match.group(1).strip() if issue_match else "",
             "rules": rules_match.group(1).strip() if rules_match else "",
@@ -654,15 +714,11 @@ class Pipeline:
                 "cartão",
                 "cartao",
             ]
-            docs_texts = []
-            try:
-                retrieved = self.case_retriever.invoke(
-                    "empréstimo consignado falsificação assinatura contrato INSS"
-                )
-                for d in retrieved[:max_docs]:
-                    docs_texts.append(d.page_content)
-            except Exception:
-                pass
+            docs_texts = self._safe_retrieve(
+                self.case_retriever,
+                "empréstimo consignado falsificação assinatura contrato INSS",
+                label="FACTS case",
+            )[:max_docs]
 
             if not docs_texts:
                 return []
@@ -722,61 +778,53 @@ class Pipeline:
         # Tentar ler do cache
         if firac_cache_path_json.exists() or firac_cache_path_raw.exists():
             try:
-                data = None
-                raw = ""
+                data, raw = self._load_cached_firac(
+                    firac_cache_path_json,
+                    firac_cache_path_raw,
+                )
 
-                if firac_cache_path_json.exists():
-                    data = json.loads(
-                        firac_cache_path_json.read_text(encoding="utf-8")
+                is_cache_valid = (
+                    data
+                    and isinstance(data, dict)
+                    and all(
+                        key in data
+                        for key in [
+                            "facts",
+                            "issue",
+                            "rules",
+                            "application",
+                            "conclusion",
+                        ]
                     )
-                    raw = (
-                        firac_cache_path_raw.read_text(encoding="utf-8")
-                        if firac_cache_path_raw.exists()
-                        else ""
+                    and any(
+                        data.get(key)
+                        for key in [
+                            "facts",
+                            "issue",
+                            "rules",
+                            "application",
+                            "conclusion",
+                        ]
                     )
+                )
 
-                    is_cache_valid = (
-                        data
-                        and isinstance(data, dict)
-                        and all(
-                            key in data
-                            for key in [
-                                "facts",
-                                "issue",
-                                "rules",
-                                "application",
-                                "conclusion",
-                            ]
-                        )
-                        and any(
-                            data.get(key)
-                            for key in [
-                                "facts",
-                                "issue",
-                                "rules",
-                                "application",
-                                "conclusion",
-                            ]
-                        )
+                if is_cache_valid:
+                    self._validar_firac_data(
+                        data, origem="FIRAC - CACHE"
                     )
-
-                    if is_cache_valid:
-                        self._validar_firac_data(
-                            data, origem="FIRAC - CACHE"
-                        )
-                        logger.info(
-                            f"[FIRAC] (CACHE) Resultado: "
-                            f"{json.dumps(data, ensure_ascii=False, indent=2)}"
-                        )
-                        return {
-                            "data": data,
-                            "raw": raw,
-                            "cached": True,
-                        }
-                    else:
-                        logger.warning(
-                            "[FIRAC CACHE] Cache JSON incompleto ou vazio. Regenerando..."
-                        )
+                    logger.info(
+                        f"[FIRAC] (CACHE) Resultado: "
+                        f"{json.dumps(data, ensure_ascii=False, indent=2)}"
+                    )
+                    return {
+                        "data": data,
+                        "raw": raw,
+                        "cached": True,
+                    }
+                else:
+                    logger.warning(
+                        "[FIRAC CACHE] Cache JSON incompleto ou vazio. Regenerando..."
+                    )
 
                 # Se só houver raw, tentar parsear
                 if firac_cache_path_raw.exists():
@@ -830,8 +878,7 @@ class Pipeline:
 
         try:
             logger.info(f"[DEBUG] Prompt FIRAC enviado ao LLM:\n{prompt}")
-            resp = self.llm.invoke(prompt)
-            raw = self._extract_text_from_llm_response(resp)
+            raw = self._invoke_llm_text(prompt, label="FIRAC")
             data = json.loads(raw)
             self._cache_firac(focus_key, data, raw)
             logger.info(
@@ -852,8 +899,7 @@ class Pipeline:
                 "em seções numeradas. Português. Base no RESUMO.\n\nRESUMO:\n" + summary
             )
             try:
-                resp2 = self.llm.invoke(fallback_prompt)
-                raw_fb = self._extract_text_from_llm_response(resp2)
+                raw_fb = self._invoke_llm_text(fallback_prompt, label="FIRAC fallback")
                 self._cache_firac(focus_key, None, raw_fb)
                 return {
                     "data": None,
@@ -915,26 +961,29 @@ class Pipeline:
             if not all_metadatas:
                 return []
 
-            unique_documents: Dict[str, Dict[str, Any]] = {}
-
-            for meta in all_metadatas:
-                if meta is None:
-                    continue
-                source_name = meta.get("source") or meta.get("source_name")
-                if not source_name:
-                    continue
-                if source_name not in unique_documents:
-                    unique_documents[source_name] = {
-                        "source": source_name,
-                        "type": meta.get("type", "N/A"),
-                        "chunk_count": 0,
-                    }
-                unique_documents[source_name]["chunk_count"] += 1
-
-            return list(unique_documents.values())
+            return self._unique_documents_from_metadatas(all_metadatas)
         except Exception as e:
             logger.error(f"Erro ao listar documentos únicos: {e}", exc_info=True)
             return []
+
+    def _unique_documents_from_metadatas(self, metadatas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        unique_documents: Dict[str, Dict[str, Any]] = {}
+
+        for meta in metadatas:
+            if meta is None:
+                continue
+            source_name = meta.get("source") or meta.get("source_name")
+            if not source_name:
+                continue
+            if source_name not in unique_documents:
+                unique_documents[source_name] = {
+                    "source": source_name,
+                    "type": meta.get("type", "N/A"),
+                    "chunk_count": 0,
+                }
+            unique_documents[source_name]["chunk_count"] += 1
+
+        return list(unique_documents.values())
 
     def delete_document_by_filename(self, filename: str) -> bool:
         """
@@ -992,9 +1041,7 @@ class Pipeline:
         Diretório físico onde os arquivos do caso serão salvos,
         por tenant + case_id. Ex.: ./cases/<tenant>/<case_id>/files
         """
-        files_dir = self.case_dir / "files"
-        files_dir.mkdir(parents=True, exist_ok=True)
-        return files_dir
+        return self._ensure_dir(self.case_dir / "files")
 
     def processar_upload_de_arquivo(
         self,
@@ -1038,76 +1085,15 @@ class Pipeline:
         tamanho_bytes = len(conteudo_arquivo_bytes)
 
         # Tipo lógico do documento (pdf, imagem, texto, audio, video, etc.)
+        tipo_doc = self._resolve_document_type(nome_arquivo)
         ext = Path(nome_arquivo).suffix.lower()
-        if ext == ".pdf":
-            tipo_doc = "pdf"
-        elif ext in [".jpg", ".jpeg", ".png"]:
-            tipo_doc = "imagem"
-        elif ext == ".txt":
-            tipo_doc = "texto"
-        elif ext in [".mp3", ".wav"]:
-            tipo_doc = "audio"
-        elif ext in [".mp4", ".mov"]:
-            tipo_doc = "video"
-        else:
-            tipo_doc = "outro"
 
         # Checksum opcional
         checksum_sha256 = hashlib.sha256(conteudo_arquivo_bytes).hexdigest()
 
         # 2) Ingestão no vector store (RAG)
         try:
-            if tipo_doc == "pdf":
-                self.ingestion_handler.add_pdf(
-                    conteudo_arquivo_bytes, source_name=nome_arquivo
-                )
-
-            elif tipo_doc == "imagem":
-                self.ingestion_handler.add_image(
-                    conteudo_arquivo_bytes, source_name=nome_arquivo
-                )
-
-            elif tipo_doc == "texto":
-                try:
-                    text = conteudo_arquivo_bytes.decode("utf-8")
-                except UnicodeDecodeError:
-                    try:
-                        text = conteudo_arquivo_bytes.decode("latin-1")
-                    except Exception:
-                        text = ""
-                if not text.strip():
-                    raise ValueError(
-                        "Arquivo .txt vazio ou não pôde ser decodificado."
-                    )
-                self.ingestion_handler.add_text_direct(
-                    text,
-                    source_name=nome_arquivo,
-                    metadata_override={"type": "text"},
-                )
-
-            elif tipo_doc == "audio":
-                self.ingestion_handler.add_audio(
-                    conteudo_arquivo_bytes,
-                    source_name=nome_arquivo,
-                    audio_format_suffix=ext,
-                    openai_client=self.openai_client,
-                )
-
-            elif tipo_doc == "video":
-                self.ingestion_handler.add_video(
-                    conteudo_arquivo_bytes,
-                    source_name=nome_arquivo,
-                    video_format_suffix=ext,
-                    openai_client=self.openai_client,
-                )
-
-            else:
-                # Se quiser, pode permitir "outro" sem indexar, mas devolver erro é mais honesto
-                return {
-                    "status": "erro",
-                    "mensagem": f"Extensão de arquivo não suportada para ingestão: {ext}",
-                }
-
+            self._ingest_document(tipo_doc, nome_arquivo, conteudo_arquivo_bytes, ext)
         except Exception as e:
             logger.error(
                 f"Falha ao indexar arquivo '{nome_arquivo}' no vector store: {e}",
@@ -1253,97 +1239,10 @@ class Pipeline:
             )
             return []
 
-    def get_indexed_ementa_filenames(self) -> List[str]:
-        """
-        Retorna lista de nomes de arquivos únicos indexados na KB de Ementas.
-        """
-        logger.info("Buscando nomes de arquivos na KB de Ementas...")
+    def _get_unique_filenames_from_store(self, store: Chroma, label: str) -> List[str]:
+        logger.info(f"Buscando nomes de arquivos na {label}...")
         try:
-            all_metadatas = self.ementas_kb_store.get(
-                include=["metadatas"]
-            ).get("metadatas", [])
-            if not all_metadatas:
-                return []
-
-            filenames = sorted(
-                list(
-                    set(
-                        meta.get("filename")
-                        for meta in all_metadatas
-                        if meta.get("filename")
-                    )
-                )
-            )
-            logger.info(
-                f"Encontrados {len(filenames)} arquivos únicos na KB de Ementas."
-            )
-            return filenames
-        except Exception as e:
-            logger.error(
-                f"Erro ao obter nomes de arquivos da KB de Ementas: {e}",
-                exc_info=True,
-            )
-            return []
-
-    def delete_ementas_by_filename(self, filename: str) -> int:
-        """
-        Deleta todos os chunks de documentos de uma ementa específica
-        na KB de Ementas.
-        """
-        if not filename:
-            logger.warning(
-                "Tentativa de deletar ementa com nome de arquivo vazio."
-            )
-            return 0
-
-        logger.info(
-            f"Iniciando deleção de todos os documentos da KB de Ementas "
-            f"com o nome de arquivo: {filename}"
-        )
-        try:
-            results = self.ementas_kb_store.get(
-                where={"filename": filename},
-                include=[],
-            )
-            ids_to_delete = results.get("ids", [])
-
-            if not ids_to_delete:
-                logger.warning(
-                    f"Nenhum documento encontrado com o nome '{filename}' "
-                    "para deletar."
-                )
-                return 0
-
-            logger.info(
-                f"Encontrados {len(ids_to_delete)} chunks para deletar "
-                f"do arquivo '{filename}'."
-            )
-            self.ementas_kb_store._collection.delete(ids=ids_to_delete)
-            self.ementas_kb_store.persist()
-            logger.info(
-                f"Deleção de '{filename}' concluída e KB de ementas persistida."
-            )
-            return len(ids_to_delete)
-        except Exception as e:
-            logger.error(
-                f"Erro ao deletar ementas por nome de arquivo '{filename}': {e}",
-                exc_info=True,
-            )
-            return 0
-
-    # ======================================================================
-    # KB GLOBAL (não específica de ementas)
-    # ======================================================================
-    def get_global_kb_filenames(self) -> List[str]:
-        """
-        Retorna lista de nomes de arquivos únicos que já foram
-        indexados na KB Global.
-        """
-        logger.info("Buscando nomes de arquivos na KB Global...")
-        try:
-            all_metadatas = self.kb_store.get(
-                include=["metadatas"]
-            ).get("metadatas", [])
+            all_metadatas = store.get(include=["metadatas"]).get("metadatas", [])
             if not all_metadatas:
                 return []
 
@@ -1357,61 +1256,100 @@ class Pipeline:
                 )
             )
             logger.info(
-                f"Encontrados {len(filenames)} arquivos únicos na KB Global."
+                f"Encontrados {len(filenames)} arquivos únicos na {label}."
             )
             return filenames
         except Exception as e:
             logger.error(
-                f"Erro ao obter nomes de arquivos da KB Global: {e}",
+                f"Erro ao obter nomes de arquivos da {label}: {e}",
                 exc_info=True,
             )
             return []
 
-    def delete_from_global_kb_by_filename(self, filename: str) -> int:
-        """
-        Deleta da KB Global todos os chunks de documento associados a
-        um nome de arquivo específico.
-        """
+    def _delete_from_store_by_filename(
+        self,
+        store: Chroma,
+        filename: str,
+        label: str,
+        delete_fn,
+    ) -> int:
         if not filename:
             logger.warning(
-                "Tentativa de deletar da KB com nome de arquivo vazio."
+                f"Tentativa de deletar da {label} com nome de arquivo vazio."
             )
             return 0
 
         logger.info(
-            f"Iniciando deleção da KB Global de todos os documentos com o "
+            f"Iniciando deleção da {label} de todos os documentos com o "
             f"nome de arquivo: {filename}"
         )
         try:
-            results = self.kb_store.get(
-                where={"filename": filename},
-                include=[],
-            )
+            results = store.get(where={"filename": filename}, include=[])
             ids_to_delete = results.get("ids", [])
 
             if not ids_to_delete:
                 logger.warning(
-                    f"Nenhum documento encontrado na KB Global com o nome "
+                    f"Nenhum documento encontrado na {label} com o nome "
                     f"'{filename}' para deletar."
                 )
                 return 0
 
             logger.info(
                 f"Encontrados {len(ids_to_delete)} chunks para deletar "
-                f"do arquivo '{filename}' da KB Global."
+                f"do arquivo '{filename}' da {label}."
             )
-            self.kb_store.delete(ids=ids_to_delete)
-            self.kb_store.persist()
+            delete_fn(ids_to_delete)
+            store.persist()
             logger.info(
-                f"Deleção de '{filename}' concluída e KB Global persistida."
+                f"Deleção de '{filename}' concluída e {label} persistida."
             )
             return len(ids_to_delete)
         except Exception as e:
             logger.error(
-                f"Erro ao deletar da KB Global por nome de arquivo '{filename}': {e}",
+                f"Erro ao deletar da {label} por nome de arquivo '{filename}': {e}",
                 exc_info=True,
             )
             return 0
+
+    def get_indexed_ementa_filenames(self) -> List[str]:
+        """
+        Retorna lista de nomes de arquivos únicos indexados na KB de Ementas.
+        """
+        return self._get_unique_filenames_from_store(self.ementas_kb_store, "KB de Ementas")
+
+    def delete_ementas_by_filename(self, filename: str) -> int:
+        """
+        Deleta todos os chunks de documentos de uma ementa específica
+        na KB de Ementas.
+        """
+        return self._delete_from_store_by_filename(
+            self.ementas_kb_store,
+            filename,
+            "KB de Ementas",
+            lambda ids: self.ementas_kb_store._collection.delete(ids=ids),
+        )
+
+    # ======================================================================
+    # KB GLOBAL (não específica de ementas)
+    # ======================================================================
+    def get_global_kb_filenames(self) -> List[str]:
+        """
+        Retorna lista de nomes de arquivos únicos que já foram
+        indexados na KB Global.
+        """
+        return self._get_unique_filenames_from_store(self.kb_store, "KB Global")
+
+    def delete_from_global_kb_by_filename(self, filename: str) -> int:
+        """
+        Deleta da KB Global todos os chunks de documento associados a
+        um nome de arquivo específico.
+        """
+        return self._delete_from_store_by_filename(
+            self.kb_store,
+            filename,
+            "KB Global",
+            lambda ids: self.kb_store.delete(ids=ids),
+        )
 
 
 if __name__ == "__main__":

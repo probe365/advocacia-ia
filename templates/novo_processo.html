@@ -3,11 +3,19 @@
 {% block title %}Novo Processo - Advocacia e IA{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-8">
-        <h2 class="mb-4">Adicionar Novo Processo para o Cliente</h2>
-        
-        <div class="card">
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Adicionar Novo Processo</h1>
+        <p class="page-subtitle">Defina os dados iniciais para iniciar as análises e a gestão do caso.</p>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('clientes.ui_mostrar_clientes') }}" class="btn btn-outline-light btn-sm">Voltar</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
+        <div class="card app-card">
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
@@ -54,7 +62,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-end">
-                        <a href="{{ url_for('clientes.ui_mostrar_clientes') }}" class="btn btn-secondary me-2">Cancelar</a>
+                        <a href="{{ url_for('clientes.ui_mostrar_clientes') }}" class="btn btn-outline-light me-2">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Salvar Processo</button>
                     </div>
                 </form>

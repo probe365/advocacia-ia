@@ -44,6 +44,25 @@ def base_case_dirs(tenant_id: Optional[str]) -> List[Path]:
     return dirs
 
 
+def _iter_case_dirs(case_id: str, tenant_id: Optional[str]) -> List[Path]:
+    candidates = candidate_case_ids(case_id)
+    if not candidates:
+        return []
+    dirs = base_case_dirs(tenant_id)
+    return [base_dir / cid for cid in candidates for base_dir in dirs]
+
+
+def _resolve_existing_case_id(case_id: str, tenant_id: Optional[str]) -> Optional[str]:
+    candidates = candidate_case_ids(case_id)
+    if not candidates:
+        return None
+    for cid in candidates:
+        for base_dir in base_case_dirs(tenant_id):
+            if (base_dir / cid).exists():
+                return cid
+    return None
+
+
 def _read_text_if_exists(path: Path) -> str:
     try:
         if path.exists():
@@ -66,26 +85,20 @@ def _latest_summary_from_cache(cache_dir: Path) -> str:
 
 def get_case_summary(case_id: str, tenant_id: Optional[str] = None, allow_pipeline: bool = True) -> str:
     """Best-effort retrieval of the resumo for a case, with pipeline fallback."""
-    candidates = candidate_case_ids(case_id)
-    if not candidates:
+    case_dirs = _iter_case_dirs(case_id, tenant_id)
+    if not case_dirs:
         return ""
 
-    dirs = base_case_dirs(tenant_id)
-    existing_case_id: Optional[str] = None
+    existing_case_id = _resolve_existing_case_id(case_id, tenant_id)
 
-    for cid in candidates:
-        for base_dir in dirs:
-            case_dir = base_dir / cid
-            if case_dir.exists() and existing_case_id is None:
-                existing_case_id = cid
+    for case_dir in case_dirs:
+        resumo_txt = _read_text_if_exists(case_dir / "resumo.txt")
+        if resumo_txt:
+            return resumo_txt
 
-            resumo_txt = _read_text_if_exists(case_dir / "resumo.txt")
-            if resumo_txt:
-                return resumo_txt
-
-            cache_txt = _latest_summary_from_cache(case_dir / "cache")
-            if cache_txt:
-                return cache_txt
+        cache_txt = _latest_summary_from_cache(case_dir / "cache")
+        if cache_txt:
+            return cache_txt
 
     if not allow_pipeline:
         return ""
@@ -93,6 +106,7 @@ def get_case_summary(case_id: str, tenant_id: Optional[str] = None, allow_pipeli
     try:
         from pipeline import Pipeline
 
+        candidates = candidate_case_ids(case_id)
         pipeline_case_id = existing_case_id or next(
             (cid for cid in candidates if cid.startswith("caso_")),
             candidates[0],
